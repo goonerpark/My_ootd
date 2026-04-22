@@ -1,0 +1,38 @@
+# frontend
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# backend
+backend/target
+backend/.gradle
+backend/build
+
+# common
+.idea
+.vscode
+*.log
+.DS_Store
+
+# Gradle
+.gradle/
+**/.gradle/
+**/.gradle-user-home/
+**/build/
+
+# Java
+*.class
+*.log
+
+# Node
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

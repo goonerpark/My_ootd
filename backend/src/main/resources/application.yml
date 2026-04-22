@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ootd-backend
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3307/my_ootd}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:0909}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MariaDBDialect
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+jwt:
+  secret: ${JWT_SECRET:replace-with-a-long-random-secret-key-at-least-32-bytes}
+  access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:3600000}
+
+weather:
+  provider: ${WEATHER_PROVIDER:openweather}
+  cache-refresh-minutes: ${WEATHER_CACHE_REFRESH_MINUTES:60}
+  openweather:
+    api-key: ${OPENWEATHER_API_KEY:}
+    base-url: https://api.openweathermap.org
+    lat: 37.5665
+    lon: 126.9780
+    units: metric
+    lang: kr
+    region-code: SEOUL
+
+# TODO: Redis/S3/FastAPI integration settings will be added in a later step

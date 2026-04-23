@@ -1,5 +1,7 @@
 package com.ootd.backend.recommendation.service;
 
+import com.ootd.backend.ai.dto.AiRecommendationResult;
+import com.ootd.backend.ai.service.GeminiRecommendationService;
 import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
 import com.ootd.backend.recommendation.entity.DailyRecommendation;
 import com.ootd.backend.recommendation.entity.RecommendationType;
@@ -26,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class RecommendationService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final SurveyService surveyService;
+    private final GeminiRecommendationService geminiRecommendationService;
 
     @Transactional
     public TodayRecommendationResponse getTodayRecommendation(Gender gender, Long userId) {
@@ -56,9 +60,10 @@ public class RecommendationService {
         UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
 
         RecommendationDraft adjusted = applyMemberAdjustments(baseDraft, todaySurvey, profile);
+        RecommendationDraft finalDraft = applyAiRecommendationOrFallback(adjusted, weatherCache, user, profile, todaySurvey);
         RecommendationType type = todaySurvey == null ? RecommendationType.GUEST_BASIC : RecommendationType.MEMBER_SURVEY;
 
-        return saveAndBuildResponse(userId, user.getGender(), weatherCache, adjusted, type);
+        return saveAndBuildResponse(userId, user.getGender(), weatherCache, finalDraft, type);
     }
 
     private TodayRecommendationResponse saveAndBuildResponse(
@@ -258,5 +263,35 @@ public class RecommendationService {
             case CHUBBY -> "통통 체형은 너무 타이트하지 않은 스트레이트 핏이 활동성과 실루엣에 좋아요.";
             case UNKNOWN -> "";
         };
+    }
+
+    private RecommendationDraft applyAiRecommendationOrFallback(
+            RecommendationDraft fallbackDraft,
+            WeatherCache weather,
+            User user,
+            UserProfile profile,
+            SurveyAnswer survey
+    ) {
+        Optional<AiRecommendationResult> aiResult = geminiRecommendationService.recommend(weather, user, profile, survey);
+        if (aiResult.isEmpty()) {
+            return fallbackDraft;
+        }
+
+        AiRecommendationResult result = aiResult.get();
+        return new RecommendationDraft(
+                sanitize(result.top()),
+                sanitize(result.outer()),
+                sanitize(result.bottom()),
+                sanitize(result.shoes()),
+                sanitize(result.accessory()),
+                sanitize(result.comment())
+        );
+    }
+
+    private String sanitize(String value) {
+        if (value == null || value.isBlank()) {
+            return "없음";
+        }
+        return value.trim();
     }
 }

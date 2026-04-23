@@ -38,4 +38,10 @@ weather:
     lang: kr
     region-code: SEOUL
 
+gemini:
+  enabled: ${GEMINI_ENABLED:true}
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+
 # TODO: Redis/S3/FastAPI integration settings will be added in a later step

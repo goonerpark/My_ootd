@@ -18,16 +18,20 @@ backend/build
 .gradle/
 **/.gradle/
 **/.gradle-user-home/
+**/.gradle-user-home-2/
 **/build/
-
-# Java
-*.class
-*.log
+**/out/
 
 # Node
 node_modules/
 dist/
 build/
+
+# Logs / temp
+*.log
+*.tmp
+*.lock
+*.bin
 
 # IDE
 .vscode/
@@ -36,3 +40,10 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Gradle cache
+backend/.gradle-user-home/
+backend/.gradle-user-home-2/
+**/.gradle/
+**/build/
+

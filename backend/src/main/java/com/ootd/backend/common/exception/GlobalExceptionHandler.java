@@ -1,6 +1,9 @@
 package com.ootd.backend.common.exception;
 
 import com.ootd.backend.common.api.ApiResponse;
+import com.ootd.backend.ootdreview.exception.OotdImageStorageException;
+import com.ootd.backend.ootdreview.exception.OotdReviewAccessDeniedException;
+import com.ootd.backend.ootdreview.exception.OotdReviewNotFoundException;
 import com.ootd.backend.survey.exception.SurveyNotFoundException;
 import com.ootd.backend.user.exception.AuthenticationFailedException;
 import com.ootd.backend.user.exception.DuplicateEmailException;
@@ -42,6 +45,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleSurveyNotFound(SurveyNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.fail("SURVEY_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OotdReviewNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdReviewNotFound(OotdReviewNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("OOTD_REVIEW_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OotdReviewAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdReviewAccessDenied(OotdReviewAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("OOTD_REVIEW_FORBIDDEN", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OotdImageStorageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdImageStorage(OotdImageStorageException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.fail("OOTD_IMAGE_STORAGE_FAILED", "Image storage failed"));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail("VALIDATION_ERROR", ex.getMessage()));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

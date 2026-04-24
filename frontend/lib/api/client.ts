@@ -1,8 +1,10 @@
 import type {
   ApiResponse,
+  CreateOotdReviewPayload,
   Gender,
   LoginRequest,
   LoginResult,
+  OotdReview,
   SignUpRequest,
   SignUpResult,
   TodayRecommendation,
@@ -104,4 +106,47 @@ export function signUp(payload: SignUpRequest) {
     method: "POST",
     body: payload
   });
+}
+
+export async function createOotdReview(token: string, payload: CreateOotdReviewPayload) {
+  const formData = new FormData();
+  if (payload.reviewDate) {
+    formData.append("reviewDate", payload.reviewDate);
+  }
+  if (payload.notes && payload.notes.trim().length > 0) {
+    formData.append("notes", payload.notes.trim());
+  }
+  payload.images.forEach((image) => formData.append("images", image));
+
+  const response = await fetch(`${API_BASE_URL}/api/ootd-reviews`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData,
+    cache: "no-store"
+  });
+
+  let apiPayload: ApiResponse<OotdReview> | null = null;
+  try {
+    apiPayload = (await response.json()) as ApiResponse<OotdReview>;
+  } catch {
+    apiPayload = null;
+  }
+
+  if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
+    const code = apiPayload?.error?.code;
+    throw new ApiRequestError(message, response.status, code);
+  }
+
+  return apiPayload.data;
+}
+
+export function fetchOotdReviews(token: string) {
+  return request<OotdReview[]>("/api/ootd-reviews", { token });
+}
+
+export function fetchOotdReviewDetail(token: string, id: number) {
+  return request<OotdReview>(`/api/ootd-reviews/${id}`, { token });
 }

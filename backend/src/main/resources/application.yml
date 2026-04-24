@@ -44,4 +44,9 @@ gemini:
   model: ${GEMINI_MODEL:gemini-2.5-flash}
   base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
 
+ootd:
+  image-storage:
+    local-dir: ${OOTD_IMAGE_LOCAL_DIR:uploads/ootd-reviews}
+    url-prefix: ${OOTD_IMAGE_URL_PREFIX:http://localhost:8080/uploads/ootd-reviews/}
+
 # TODO: Redis/S3/FastAPI integration settings will be added in a later step

@@ -115,3 +115,22 @@ export type WeeklyRecommendationItem = {
   weather: WeeklyRecommendationWeather;
   recommendation: WeeklyRecommendationOutfit;
 };
+
+export type OotdReview = {
+  id: number;
+  userId: number;
+  reviewDate: string;
+  rating: number;
+  fitFeedback: string | null;
+  colorFeedback: string | null;
+  overallFeedback: string | null;
+  aiModelVersion: string | null;
+  createdAt: string;
+  imageUrls: string[];
+};
+
+export type CreateOotdReviewPayload = {
+  reviewDate?: string;
+  notes?: string;
+  images: File[];
+};

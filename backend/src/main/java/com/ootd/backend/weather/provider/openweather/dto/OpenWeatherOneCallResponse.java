@@ -19,14 +19,17 @@ public record OpenWeatherOneCallResponse(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Daily(
+            long dt,
             Temp temp,
             double pop,
+            double humidity,
             List<Weather> weather
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Temp(
+            double day,
             double min,
             double max
     ) {

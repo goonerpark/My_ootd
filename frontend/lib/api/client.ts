@@ -8,7 +8,8 @@ import type {
   TodayRecommendation,
   TodaySurvey,
   TodayWeather,
-  UpsertSurveyPayload
+  UpsertSurveyPayload,
+  WeeklyRecommendationItem
 } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
@@ -73,6 +74,10 @@ export function fetchTodayRecommendation(gender: Gender) {
 
 export function fetchTodayMemberRecommendation(token: string) {
   return request<TodayRecommendation>("/api/recommendations/member/today", { token });
+}
+
+export function fetchWeeklyRecommendations(token: string) {
+  return request<WeeklyRecommendationItem[]>("/api/recommendations/weekly", { token });
 }
 
 export function fetchTodaySurvey(token: string) {

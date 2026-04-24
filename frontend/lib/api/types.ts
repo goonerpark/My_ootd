@@ -90,3 +90,28 @@ export type UpsertSurveyPayload = {
   outingPurpose: OutingPurpose;
   notes?: string;
 };
+
+export type WeeklyRecommendationWeather = {
+  weatherMain: string;
+  weatherDescription: string;
+  minTemp: number;
+  maxTemp: number;
+  currentTemp: number;
+  precipitationProbability: number;
+  humidity: number;
+};
+
+export type WeeklyRecommendationOutfit = {
+  top: string;
+  outer: string;
+  bottom: string;
+  shoes: string;
+  accessory: string;
+  comment: string;
+};
+
+export type WeeklyRecommendationItem = {
+  targetDate: string;
+  weather: WeeklyRecommendationWeather;
+  recommendation: WeeklyRecommendationOutfit;
+};

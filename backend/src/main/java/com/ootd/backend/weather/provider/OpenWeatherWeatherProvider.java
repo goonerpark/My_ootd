@@ -11,8 +11,11 @@ import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -35,12 +38,69 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
 
     @Override
     public WeatherSnapshot fetchToday() {
+        List<WeatherSnapshot> snapshots = fetchWeekly(LocalDate.now(), 1);
+        if (snapshots.isEmpty()) {
+            throw new IllegalStateException("OpenWeather response is invalid");
+        }
+        return snapshots.get(0);
+    }
+
+    @Override
+    public List<WeatherSnapshot> fetchWeekly(LocalDate startDate, int days) {
         WeatherProperties.OpenWeather config = properties.getOpenweather();
         if (config.getApiKey() == null || config.getApiKey().isBlank()) {
             throw new IllegalStateException("OPENWEATHER_API_KEY is empty");
         }
 
-        OpenWeatherOneCallResponse response = restClient.get()
+        OpenWeatherOneCallResponse response = fetchOneCallResponse(config);
+
+        if (response == null || response.daily() == null || response.daily().isEmpty()) {
+            throw new IllegalStateException("OpenWeather response is invalid");
+        }
+
+        int size = Math.max(1, Math.min(days, 7));
+        List<WeatherSnapshot> snapshots = new ArrayList<>();
+        LocalDateTime fetchedAt = LocalDateTime.now();
+        String rawJson = toJson(response);
+
+        for (int i = 0; i < Math.min(size, response.daily().size()); i++) {
+            OpenWeatherOneCallResponse.Daily daily = response.daily().get(i);
+
+            String main = firstWeatherMain(daily.weather(), response.current() == null ? null : response.current().weather());
+            String description = firstWeatherDescription(daily.weather(), response.current() == null ? null : response.current().weather());
+            LocalDate targetDate = daily.dt() > 0
+                    ? Instant.ofEpochSecond(daily.dt()).atZone(ZoneId.systemDefault()).toLocalDate()
+                    : startDate.plusDays(i);
+
+            BigDecimal currentTemp = decimal(daily.temp().day());
+            if (i == 0 && response.current() != null) {
+                currentTemp = decimal(response.current().temp());
+            }
+
+            snapshots.add(new WeatherSnapshot(
+                    targetDate,
+                    config.getRegionCode(),
+                    main,
+                    description,
+                    percent(daily.pop()),
+                    decimal(daily.temp().min()),
+                    decimal(daily.temp().max()),
+                    currentTemp,
+                    decimal(daily.humidity()),
+                    rawJson,
+                    fetchedAt
+            ));
+        }
+
+        return snapshots;
+    }
+
+    private String extractHost(String baseUrl) {
+        return baseUrl.replace("https://", "").replace("http://", "");
+    }
+
+    private OpenWeatherOneCallResponse fetchOneCallResponse(WeatherProperties.OpenWeather config) {
+        return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("https")
                         .host(extractHost(config.getBaseUrl()))
@@ -54,32 +114,6 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
                         .build())
                 .retrieve()
                 .body(OpenWeatherOneCallResponse.class);
-
-        if (response == null || response.current() == null || response.daily() == null || response.daily().isEmpty()) {
-            throw new IllegalStateException("OpenWeather response is invalid");
-        }
-
-        OpenWeatherOneCallResponse.Daily today = response.daily().get(0);
-        String main = firstWeatherMain(today.weather(), response.current().weather());
-        String description = firstWeatherDescription(today.weather(), response.current().weather());
-
-        return new WeatherSnapshot(
-                LocalDate.now(),
-                config.getRegionCode(),
-                main,
-                description,
-                percent(today.pop()),
-                decimal(today.temp().min()),
-                decimal(today.temp().max()),
-                decimal(response.current().temp()),
-                decimal(response.current().humidity()),
-                toJson(response),
-                LocalDateTime.now()
-        );
-    }
-
-    private String extractHost(String baseUrl) {
-        return baseUrl.replace("https://", "").replace("http://", "");
     }
 
     private BigDecimal decimal(double value) {

@@ -2,7 +2,9 @@ package com.ootd.backend.recommendation.controller;
 
 import com.ootd.backend.common.api.ApiResponse;
 import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
+import com.ootd.backend.recommendation.dto.WeeklyRecommendationResponse;
 import com.ootd.backend.recommendation.service.RecommendationService;
+import com.ootd.backend.recommendation.service.WeeklyRecommendationService;
 import com.ootd.backend.security.auth.CustomUserDetails;
 import com.ootd.backend.user.entity.Gender;
 import com.ootd.backend.user.exception.AuthenticationFailedException;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Validated
 @RestController
 @RequestMapping("/api/recommendations")
@@ -23,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final WeeklyRecommendationService weeklyRecommendationService;
 
     @GetMapping("/today")
     public ResponseEntity<ApiResponse<TodayRecommendationResponse>> getTodayRecommendation(
@@ -40,5 +45,15 @@ public class RecommendationController {
             throw new AuthenticationFailedException("Authentication is required");
         }
         return ResponseEntity.ok(ApiResponse.ok(recommendationService.getTodayMemberRecommendation(userDetails.getUserId())));
+    }
+
+    @GetMapping("/weekly")
+    public ResponseEntity<ApiResponse<List<WeeklyRecommendationResponse>>> getWeeklyRecommendation(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null || userDetails.getUserId() == null) {
+            throw new AuthenticationFailedException("Authentication is required");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(weeklyRecommendationService.getWeeklyRecommendations(userDetails.getUserId())));
     }
 }

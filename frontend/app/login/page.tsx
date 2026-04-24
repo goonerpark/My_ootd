@@ -30,7 +30,7 @@ export default function LoginPage() {
     try {
       const result = await login({ email, password });
       setAccessTokenToStorage(result.accessToken);
-      router.push("/survey");
+      router.push("/");
     } catch (err) {
       const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "로그인에 실패했습니다.";
       setError(message);

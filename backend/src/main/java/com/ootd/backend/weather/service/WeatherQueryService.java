@@ -17,8 +17,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -59,6 +63,68 @@ public class WeatherQueryService {
         return toResponse(cache);
     }
 
+    @Transactional
+    public List<WeatherCache> getOrFetchWeatherCaches(LocalDate startDate, int days) {
+        int safeDays = Math.max(1, Math.min(days, 7));
+        String regionCode = weatherProperties.getOpenweather().getRegionCode();
+        LocalDate endDate = startDate.plusDays(safeDays - 1L);
+
+        List<LocalDate> targetDates = startDate.datesUntil(endDate.plusDays(1)).toList();
+        List<WeatherCache> existingCaches = weatherCacheRepository
+                .findByTargetDateBetweenAndRegionCode(startDate, endDate, regionCode);
+
+        Map<LocalDate, WeatherCache> cacheByDate = existingCaches.stream()
+                .collect(Collectors.toMap(WeatherCache::getTargetDate, cache -> cache, (left, right) -> left, HashMap::new));
+
+        List<LocalDate> missingDates = targetDates.stream()
+                .filter(date -> !cacheByDate.containsKey(date))
+                .toList();
+
+        List<LocalDate> refreshDates = targetDates.stream()
+                .filter(date -> cacheByDate.containsKey(date))
+                .filter(date -> {
+                    WeatherCache cache = cacheByDate.get(date);
+                    return cache != null && (!isFresh(cache) || isMockCache(cache));
+                })
+                .toList();
+
+        if (!missingDates.isEmpty() || !refreshDates.isEmpty()) {
+            List<WeatherSnapshot> snapshots = fetchWeeklyFromConfiguredProviderWithFallback(startDate, safeDays);
+            Map<LocalDate, WeatherSnapshot> snapshotByDate = snapshots.stream()
+                    .collect(Collectors.toMap(WeatherSnapshot::targetDate, snapshot -> snapshot, (left, right) -> left, HashMap::new));
+
+            for (LocalDate missingDate : missingDates) {
+                WeatherSnapshot snapshot = snapshotByDate.get(missingDate);
+                if (snapshot == null) {
+                    continue;
+                }
+                try {
+                    WeatherCache saved = saveCacheInNewTransaction(snapshot);
+                    cacheByDate.put(saved.getTargetDate(), saved);
+                } catch (DataIntegrityViolationException ex) {
+                    weatherCacheRepository.findByTargetDateAndRegionCode(missingDate, regionCode)
+                            .ifPresent(cache -> cacheByDate.put(cache.getTargetDate(), cache));
+                }
+            }
+
+            for (LocalDate refreshDate : refreshDates) {
+                WeatherCache existing = cacheByDate.get(refreshDate);
+                WeatherSnapshot snapshot = snapshotByDate.get(refreshDate);
+                if (existing == null || snapshot == null) {
+                    continue;
+                }
+                WeatherCache updated = updateCacheInNewTransaction(existing.getId(), snapshot);
+                cacheByDate.put(updated.getTargetDate(), updated);
+            }
+        }
+
+        return targetDates.stream()
+                .map(cacheByDate::get)
+                .filter(cache -> cache != null)
+                .sorted(Comparator.comparing(WeatherCache::getTargetDate))
+                .toList();
+    }
+
     public TodayWeatherResponse toResponse(WeatherCache cache) {
         return new TodayWeatherResponse(
                 cache.getTargetDate(),
@@ -87,6 +153,26 @@ public class WeatherQueryService {
             return configuredProvider.fetchToday();
         } catch (Exception e) {
             return mockProvider.fetchToday();
+        }
+    }
+
+    private List<WeatherSnapshot> fetchWeeklyFromConfiguredProviderWithFallback(LocalDate startDate, int days) {
+        String provider = weatherProperties.getProvider();
+        WeatherProvider configuredProvider = findProviderOrThrow(provider);
+        WeatherProvider mockProvider = findProviderOrThrow("mock");
+
+        if ("mock".equalsIgnoreCase(provider)) {
+            return mockProvider.fetchWeekly(startDate, days);
+        }
+
+        try {
+            List<WeatherSnapshot> snapshots = configuredProvider.fetchWeekly(startDate, days);
+            if (snapshots == null || snapshots.isEmpty()) {
+                return mockProvider.fetchWeekly(startDate, days);
+            }
+            return snapshots;
+        } catch (Exception ex) {
+            return mockProvider.fetchWeekly(startDate, days);
         }
     }
 
@@ -161,6 +247,15 @@ public class WeatherQueryService {
             return false;
         }
         return cache.getFetchedAt().isAfter(LocalDateTime.now().minusMinutes(refreshMinutes));
+    }
+
+    private boolean isMockCache(WeatherCache cache) {
+        String raw = cache.getApiResponseJson();
+        if (raw != null && raw.contains("\"provider\":\"mock\"")) {
+            return true;
+        }
+        String description = cache.getWeatherDescription();
+        return description != null && description.toLowerCase().contains("(mock)");
     }
 
     private String normalizeDescription(String input) {

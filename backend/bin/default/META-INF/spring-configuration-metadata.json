@@ -1,0 +1,88 @@
+{
+  "groups": [
+    {
+      "name": "gemini",
+      "type": "com.ootd.backend.ai.config.GeminiProperties",
+      "sourceType": "com.ootd.backend.ai.config.GeminiProperties"
+    },
+    {
+      "name": "weather",
+      "type": "com.ootd.backend.weather.config.WeatherProperties",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties"
+    },
+    {
+      "name": "weather.openweather",
+      "type": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties",
+      "sourceMethod": "public com.ootd.backend.weather.config.WeatherProperties.OpenWeather getOpenweather() "
+    }
+  ],
+  "properties": [
+    {
+      "name": "gemini.api-key",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.ai.config.GeminiProperties"
+    },
+    {
+      "name": "gemini.base-url",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.ai.config.GeminiProperties"
+    },
+    {
+      "name": "gemini.enabled",
+      "type": "java.lang.Boolean",
+      "sourceType": "com.ootd.backend.ai.config.GeminiProperties"
+    },
+    {
+      "name": "gemini.model",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.ai.config.GeminiProperties"
+    },
+    {
+      "name": "weather.cache-refresh-minutes",
+      "type": "java.lang.Integer",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties"
+    },
+    {
+      "name": "weather.openweather.api-key",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.base-url",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.lang",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.lat",
+      "type": "java.lang.Double",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.lon",
+      "type": "java.lang.Double",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.region-code",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.openweather.units",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties$OpenWeather"
+    },
+    {
+      "name": "weather.provider",
+      "type": "java.lang.String",
+      "sourceType": "com.ootd.backend.weather.config.WeatherProperties"
+    }
+  ],
+  "hints": []
+}

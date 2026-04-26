@@ -1,6 +1,9 @@
 package com.ootd.backend.common.exception;
 
 import com.ootd.backend.common.api.ApiResponse;
+import com.ootd.backend.closet.exception.ClosetImageStorageException;
+import com.ootd.backend.closet.exception.ClosetItemAccessDeniedException;
+import com.ootd.backend.closet.exception.ClosetItemNotFoundException;
 import com.ootd.backend.ootdreview.exception.OotdImageStorageException;
 import com.ootd.backend.ootdreview.exception.OotdReviewAccessDeniedException;
 import com.ootd.backend.ootdreview.exception.OotdReviewNotFoundException;
@@ -63,6 +66,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleOotdImageStorage(OotdImageStorageException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.fail("OOTD_IMAGE_STORAGE_FAILED", "Image storage failed"));
+    }
+
+    @ExceptionHandler(ClosetItemNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleClosetItemNotFound(ClosetItemNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("CLOSET_ITEM_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ClosetItemAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleClosetItemAccessDenied(ClosetItemAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("CLOSET_ITEM_FORBIDDEN", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ClosetImageStorageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleClosetImageStorage(ClosetImageStorageException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.fail("CLOSET_IMAGE_STORAGE_FAILED", "Closet image storage failed"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -492,3 +492,81 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.closetFormRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.closetFormPreview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7faff;
+}
+
+.closetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.closetCard {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  display: grid;
+}
+
+.closetCard.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(20, 93, 232, 0.15);
+}
+
+.closetCardImage {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: #f7faff;
+  border-bottom: 1px solid var(--line);
+}
+
+.closetCardBody {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.closetTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.closetTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 0.82rem;
+  background: #f7faff;
+}
+
+.closetCardMemo {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+@media (max-width: 720px) {
+  .closetFormRow {
+    grid-template-columns: 1fr;
+  }
+}

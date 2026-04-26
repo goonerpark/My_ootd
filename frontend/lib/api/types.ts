@@ -134,3 +134,38 @@ export type CreateOotdReviewPayload = {
   notes?: string;
   images: File[];
 };
+
+export type ClosetCategory = "TOP" | "OUTER" | "BOTTOM" | "SHOES" | "ACCESSORY";
+export type ClosetSeason = "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | "ALL";
+export type ClosetThickness = "THIN" | "NORMAL" | "THICK";
+export type ClosetFit = "SLIM" | "REGULAR" | "OVER" | "WIDE" | "UNKNOWN";
+
+export type ClosetItem = {
+  id: number;
+  userId: number;
+  category: ClosetCategory;
+  subcategory: string | null;
+  color: string | null;
+  season: ClosetSeason;
+  thickness: ClosetThickness;
+  fit: ClosetFit;
+  brand: string | null;
+  imageUrl: string;
+  memo: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpsertClosetItemPayload = {
+  category: ClosetCategory;
+  subcategory?: string;
+  color?: string;
+  season?: ClosetSeason;
+  thickness?: ClosetThickness;
+  fit?: ClosetFit;
+  brand?: string;
+  memo?: string;
+  imageUrl?: string;
+  imageFile?: File | null;
+};

@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  ClosetItem,
   CreateOotdReviewPayload,
   Gender,
   LoginRequest,
@@ -10,6 +11,7 @@ import type {
   TodayRecommendation,
   TodaySurvey,
   TodayWeather,
+  UpsertClosetItemPayload,
   UpsertSurveyPayload,
   WeeklyRecommendationItem
 } from "./types";
@@ -29,7 +31,7 @@ export class ApiRequestError extends Error {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   token?: string;
   body?: unknown;
 };
@@ -64,6 +66,36 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   return payload.data;
+}
+
+async function requestVoid(path: string, options: RequestOptions = {}): Promise<void> {
+  const method = options.method ?? "GET";
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json"
+  };
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+    cache: "no-store"
+  });
+
+  let payload: ApiResponse<unknown> | null = null;
+  try {
+    payload = (await response.json()) as ApiResponse<unknown>;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || !payload?.success) {
+    const message = payload?.error?.message ?? "API 요청에 실패했습니다.";
+    const code = payload?.error?.code;
+    throw new ApiRequestError(message, response.status, code);
+  }
 }
 
 export function fetchTodayWeather() {
@@ -149,4 +181,88 @@ export function fetchOotdReviews(token: string) {
 
 export function fetchOotdReviewDetail(token: string, id: number) {
   return request<OotdReview>(`/api/ootd-reviews/${id}`, { token });
+}
+
+function buildClosetFormData(payload: UpsertClosetItemPayload) {
+  const formData = new FormData();
+  formData.append("category", payload.category);
+  if (payload.subcategory && payload.subcategory.trim().length > 0) {
+    formData.append("subcategory", payload.subcategory.trim());
+  }
+  if (payload.color && payload.color.trim().length > 0) {
+    formData.append("color", payload.color.trim());
+  }
+  if (payload.season) {
+    formData.append("season", payload.season);
+  }
+  if (payload.thickness) {
+    formData.append("thickness", payload.thickness);
+  }
+  if (payload.fit) {
+    formData.append("fit", payload.fit);
+  }
+  if (payload.brand && payload.brand.trim().length > 0) {
+    formData.append("brand", payload.brand.trim());
+  }
+  if (payload.memo && payload.memo.trim().length > 0) {
+    formData.append("memo", payload.memo.trim());
+  }
+  if (payload.imageUrl && payload.imageUrl.trim().length > 0) {
+    formData.append("imageUrl", payload.imageUrl.trim());
+  }
+  if (payload.imageFile) {
+    formData.append("imageFile", payload.imageFile);
+  }
+  return formData;
+}
+
+async function requestClosetWithFormData(
+  path: string,
+  method: "POST" | "PUT",
+  token: string,
+  payload: UpsertClosetItemPayload
+) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: buildClosetFormData(payload),
+    cache: "no-store"
+  });
+
+  let apiPayload: ApiResponse<ClosetItem> | null = null;
+  try {
+    apiPayload = (await response.json()) as ApiResponse<ClosetItem>;
+  } catch {
+    apiPayload = null;
+  }
+
+  if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
+    const code = apiPayload?.error?.code;
+    throw new ApiRequestError(message, response.status, code);
+  }
+
+  return apiPayload.data;
+}
+
+export function fetchClosetItems(token: string) {
+  return request<ClosetItem[]>("/api/closet-items", { token });
+}
+
+export function fetchClosetItemDetail(token: string, id: number) {
+  return request<ClosetItem>(`/api/closet-items/${id}`, { token });
+}
+
+export function createClosetItem(token: string, payload: UpsertClosetItemPayload) {
+  return requestClosetWithFormData("/api/closet-items", "POST", token, payload);
+}
+
+export function updateClosetItem(token: string, id: number, payload: UpsertClosetItemPayload) {
+  return requestClosetWithFormData(`/api/closet-items/${id}`, "PUT", token, payload);
+}
+
+export function deleteClosetItem(token: string, id: number) {
+  return requestVoid(`/api/closet-items/${id}`, { method: "DELETE", token });
 }

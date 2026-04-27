@@ -68,6 +68,7 @@ MYOOTD는 날씨, 설문, 사용자 옷장 데이터를 기반으로
 ---
 
 ## 📂 Project Structure
+```
 ootd/
 ├─ backend/ # Spring Boot
 │ ├─ src/main/java/...
@@ -86,6 +87,7 @@ ootd/
 ├─ docker-compose.yml
 ├─ .env.example # docker-compose용
 └─ README.md
+```
 
 
 ---
@@ -126,17 +128,22 @@ ootd/
 ```bash
 cd backend
 ./gradlew bootRun
+```
 #### Frontend
-cd frontend
+```cd frontend
 npm install
 npm run dev
-
-접속:
+```
+#### 접속
+```
 Frontend: http://localhost:3000
 Backend: http://localhost:8080
+```
 
-🐳 Docker 실행
-# 환경변수 복사
+---
+
+### 🐳 Docker 실행
+```# 환경변수 복사
 cp .env.example .env
 
 # 실행
@@ -147,29 +154,43 @@ docker compose ps
 
 # 종료
 docker compose down
+```
 
-🌐 CORS 설정
+---
+
+### 🌐 CORS 설정
+```
 CORS_ALLOWED_ORIGINS=http://localhost:3000
-
-복수:
-
+```
+#### 복수:
+```
 CORS_ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
+```
 
-⚠️ Security
-.env, API Key, DB 비밀번호는 절대 커밋 금지
-운영 환경에서는:
-강력한 JWT_SECRET 사용
-도메인 기반 CORS 제한
-외부 환경변수 주입 필수
-🚧 Project Status
+---
 
+### ⚠️ Security
+- .env, API Key, DB 비밀번호는 절대 커밋 금지
+
+#### 운영 환경에서는:
+
+- 강력한 JWT_SECRET 사용
+- 도메인 기반 CORS 제한
+- 외부 환경변수 주입 필수
+
+---
+
+### 🚧 Project Status
 현재 MVP 단계이며 핵심 기능 검증 완료 상태입니다.
 
-향후 개선 예정
-추천 알고리즘 고도화
-이미지 저장소 (S3) 이전
-UI/UX 개선
-성능 최적화 및 캐싱 전략 강화
-📌 Notes
-이미지 저장은 현재 로컬 기반
-향후 클라우드 스토리지로 확장 예정
+#### 향후 개선 예정
+- 추천 알고리즘 고도화
+- 이미지 저장소 (S3) 이전
+- UI/UX 개선
+- 성능 최적화 및 캐싱 전략 강화
+
+---
+
+### 📌 Notes
+- 이미지 저장은 현재 로컬 기반
+- 향후 클라우드 스토리지로 확장 예정

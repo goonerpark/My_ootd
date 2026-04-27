@@ -1,4 +1,4 @@
-import type { Gender } from "@/lib/api/types";
+﻿import type { Gender } from "@/lib/api/types";
 
 type Props = {
   value: Gender;
@@ -7,14 +7,10 @@ type Props = {
 
 export function GenderSelector({ value, onChange }: Props) {
   return (
-    <div className="panel">
-      <h2>성별</h2>
+    <section className="sectionCard">
+      <h2>성별 선택</h2>
       <div className="row">
-        <button
-          className={value === "MALE" ? "toggle active" : "toggle"}
-          onClick={() => onChange("MALE")}
-          type="button"
-        >
+        <button className={value === "MALE" ? "toggle active" : "toggle"} onClick={() => onChange("MALE")} type="button">
           남성
         </button>
         <button
@@ -25,6 +21,6 @@ export function GenderSelector({ value, onChange }: Props) {
           여성
         </button>
       </div>
-    </div>
+    </section>
   );
 }

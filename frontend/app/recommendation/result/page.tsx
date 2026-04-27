@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { ErrorMessage, PageHeader, SectionCard } from "@/components/ui";
 import { fetchTodayMemberRecommendation } from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
 import { buildRecommendationPrompt } from "@/lib/survey/prompt";
@@ -64,24 +65,26 @@ export default function RecommendationResultPage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>오늘의 옷 추천 결과</h1>
-          <p>설문 응답을 반영한 추천입니다.</p>
-        </header>
+        <PageHeader title="오늘의 옷 추천 결과" subtitle="설문 답변을 반영한 회원 맞춤 추천입니다." />
 
-        <section className="panel">
-          <h2>AI 프롬프트 변환 미리보기</h2>
+        <SectionCard title="AI 프롬프트 변환 미리보기">
           <p className="muted">{promptPreview}</p>
-        </section>
+        </SectionCard>
 
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
 
         <RecommendationCard data={recommendation} loading={loading} />
 
-        <section className="panel inlineActions">
-          <Link className="textLink" href="/survey">설문 다시 작성</Link>
-          <Link className="textLink" href="/">메인으로 이동</Link>
-        </section>
+        <SectionCard>
+          <div className="inlineActions">
+            <Link className="textLink" href="/survey">
+              설문 다시 작성
+            </Link>
+            <Link className="textLink" href="/">
+              메인으로 이동
+            </Link>
+          </div>
+        </SectionCard>
       </section>
     </main>
   );

@@ -2,7 +2,9 @@ package com.ootd.backend.ootdreview.controller;
 
 import com.ootd.backend.common.api.ApiResponse;
 import com.ootd.backend.ootdreview.dto.CreateOotdReviewRequest;
+import com.ootd.backend.ootdreview.dto.OotdClosetSuggestionsResponse;
 import com.ootd.backend.ootdreview.dto.OotdReviewResponse;
+import com.ootd.backend.ootdreview.service.OotdClosetSuggestionService;
 import com.ootd.backend.ootdreview.service.OotdReviewService;
 import com.ootd.backend.security.auth.CustomUserDetails;
 import com.ootd.backend.user.exception.AuthenticationFailedException;
@@ -26,6 +28,7 @@ import java.util.List;
 public class OotdReviewController {
 
     private final OotdReviewService ootdReviewService;
+    private final OotdClosetSuggestionService ootdClosetSuggestionService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<OotdReviewResponse>> createReview(
@@ -51,6 +54,15 @@ public class OotdReviewController {
     ) {
         Long userId = extractUserId(userDetails);
         return ResponseEntity.ok(ApiResponse.ok(ootdReviewService.getMyReview(userId, id)));
+    }
+
+    @GetMapping("/{id}/closet-suggestions")
+    public ResponseEntity<ApiResponse<OotdClosetSuggestionsResponse>> getClosetSuggestions(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id
+    ) {
+        Long userId = extractUserId(userDetails);
+        return ResponseEntity.ok(ApiResponse.ok(ootdClosetSuggestionService.suggestFromReview(userId, id)));
     }
 
     private Long extractUserId(CustomUserDetails userDetails) {

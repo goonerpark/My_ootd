@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ function toKoreanErrorMessage(message: string) {
     return "로그인이 필요한 기능입니다.";
   }
   if (message === "Unexpected server error") {
-    return "서버에서 예기치 않은 오류가 발생했습니다.";
+    return "서버에서 예기치 못한 오류가 발생했습니다.";
   }
   return message;
 }
@@ -62,10 +62,10 @@ export default function RecommendationLoadingPage() {
   return (
     <main className="page">
       <section className="container">
-        <section className="panel loadingPanel">
+        <section className="sectionCard loadingPanel">
           <div className="spinner" />
           <h2>오늘의 옷차림을 분석하고 있어요</h2>
-          <p className="muted">날씨와 설문 응답을 바탕으로 추천을 만드는 중입니다.</p>
+          <p className="muted">날씨와 설문 답변을 반영해 추천을 준비 중입니다.</p>
           {error && <p className="error">{error}</p>}
         </section>
       </section>

@@ -1,15 +1,23 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GenderSelector } from "@/components/GenderSelector";
+import { ClosetRecommendationCard } from "@/components/ClosetRecommendationCard";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { WeatherCard } from "@/components/WeatherCard";
-import { fetchTodayRecommendation, fetchTodayWeather, fetchWeeklyRecommendations } from "@/lib/api/client";
+import { ErrorMessage, PageHeader, PrimaryButton, SectionCard, SecondaryButton } from "@/components/ui";
+import {
+  fetchTodayClosetRecommendation,
+  fetchTodayRecommendation,
+  fetchTodayWeather,
+  fetchWeeklyRecommendations
+} from "@/lib/api/client";
 import { clearAccessTokenFromStorage, getAccessTokenFromStorage } from "@/lib/auth/token";
 import type {
   Gender,
+  TodayClosetRecommendation,
   TodayRecommendation,
   TodayWeather,
   WeeklyRecommendationItem
@@ -17,7 +25,7 @@ import type {
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Unexpected server error") {
-    return "서버에서 예기치 않은 오류가 발생했습니다.";
+    return "서버에서 예기치 못한 오류가 발생했습니다.";
   }
   if (message === "Authentication is required") {
     return "인증이 필요합니다.";
@@ -31,12 +39,15 @@ export default function HomePage() {
   const [gender, setGender] = useState<Gender>("MALE");
   const [weather, setWeather] = useState<TodayWeather | null>(null);
   const [recommendation, setRecommendation] = useState<TodayRecommendation | null>(null);
+  const [closetRecommendation, setClosetRecommendation] = useState<TodayClosetRecommendation | null>(null);
   const [weeklyRecommendations, setWeeklyRecommendations] = useState<WeeklyRecommendationItem[]>([]);
   const [dateIndex, setDateIndex] = useState(0);
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+  const [loadingClosetRecommendation, setLoadingClosetRecommendation] = useState(false);
   const [loadingWeekly, setLoadingWeekly] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [closetError, setClosetError] = useState<string | null>(null);
   const [showMemberOnlyModal, setShowMemberOnlyModal] = useState(false);
 
   const todayLabel = useMemo(
@@ -58,6 +69,8 @@ export default function HomePage() {
     const token = getAccessTokenFromStorage();
     if (!token) {
       setWeeklyRecommendations([]);
+      setClosetRecommendation(null);
+      setClosetError(null);
       setDateIndex(0);
       return;
     }
@@ -77,6 +90,31 @@ export default function HomePage() {
       }
     };
     loadWeekly();
+  }, [hasToken]);
+
+  useEffect(() => {
+    const token = getAccessTokenFromStorage();
+    if (!token) {
+      setClosetRecommendation(null);
+      setClosetError(null);
+      return;
+    }
+
+    const loadClosetRecommendation = async () => {
+      setLoadingClosetRecommendation(true);
+      setClosetError(null);
+      try {
+        const data = await fetchTodayClosetRecommendation(token);
+        setClosetRecommendation(data);
+      } catch (err) {
+        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "옷장 추천 정보를 불러오지 못했습니다.";
+        setClosetError(message);
+      } finally {
+        setLoadingClosetRecommendation(false);
+      }
+    };
+
+    loadClosetRecommendation();
   }, [hasToken]);
 
   useEffect(() => {
@@ -187,96 +225,110 @@ export default function HomePage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>OOTD 데일리 MVP</h1>
-          <div className="dateNavigator">
-            <button
-              className="dateArrowBtn"
-              type="button"
-              onClick={() => moveDate("prev")}
-              disabled={hasToken && dateIndex === 0}
-              aria-label="이전 날짜"
-            >
-              ←
-            </button>
-            <p className="dateText">{dateLabel}</p>
-            <button
-              className="dateArrowBtn"
-              type="button"
-              onClick={() => moveDate("next")}
-              disabled={hasToken && weeklyRecommendations.length > 0 && dateIndex === weeklyRecommendations.length - 1}
-              aria-label="다음 날짜"
-            >
-              →
-            </button>
-          </div>
-        </header>
+        <PageHeader title="OOTD Daily MVP" subtitle={todayLabel} />
 
-        <section className="panel">
-          <h2>오늘의 옷 추천</h2>
+        <div className="dateNavigator">
+          <button
+            className="dateArrowBtn"
+            type="button"
+            onClick={() => moveDate("prev")}
+            disabled={hasToken && dateIndex === 0}
+            aria-label="이전 날짜"
+          >
+            ←
+          </button>
+          <p className="dateText">{dateLabel}</p>
+          <button
+            className="dateArrowBtn"
+            type="button"
+            onClick={() => moveDate("next")}
+            disabled={hasToken && weeklyRecommendations.length > 0 && dateIndex === weeklyRecommendations.length - 1}
+            aria-label="다음 날짜"
+          >
+            →
+          </button>
+        </div>
+
+        <SectionCard title="오늘의 옷 추천">
           <p className="muted">설문을 작성하면 회원 맞춤 추천 결과로 이어집니다.</p>
           <div className="inlineActions">
-            <button className="primaryBtn" type="button" onClick={goToRecommendationFlow}>
-              오늘의 옷 추천
-            </button>
+            <PrimaryButton onClick={goToRecommendationFlow}>오늘의 옷 추천</PrimaryButton>
             {hasToken ? (
-                <button
-                  className="ghostBtn"
-                  type="button"
-                  onClick={() => {
-                    clearAccessTokenFromStorage();
-                    setHasToken(false);
-                    setDateIndex(0);
-                  }}
-                >
-                  로그아웃
-                </button>
+              <SecondaryButton
+                onClick={() => {
+                  clearAccessTokenFromStorage();
+                  setHasToken(false);
+                  setDateIndex(0);
+                }}
+              >
+                로그아웃
+              </SecondaryButton>
             ) : (
               <p className="muted">
-                <Link className="textLink" href="/login">로그인</Link> /{" "}
-                <Link className="textLink" href="/signup">회원가입</Link>
+                <Link className="textLink" href="/login">
+                  로그인
+                </Link>{" "}
+                /{" "}
+                <Link className="textLink" href="/signup">
+                  회원가입
+                </Link>
               </p>
             )}
           </div>
-        </section>
+        </SectionCard>
+
+        <SectionCard title="바로가기">
+          <p className="muted">주요 기능으로 빠르게 이동할 수 있습니다.</p>
+          <div className="inlineActions">
+            <Link className="primaryBtn" href="/ootd">
+              OOTD 평가
+            </Link>
+            <Link className="ghostBtn" href="/closet">
+              나의 옷장
+            </Link>
+            <Link className="ghostBtn" href="/mypage">
+              마이페이지
+            </Link>
+          </div>
+        </SectionCard>
 
         <GenderSelector value={gender} onChange={setGender} />
 
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
 
         <WeatherCard data={displayedWeather} loading={loadingWeather || loadingWeekly} />
         <RecommendationCard data={displayedRecommendation} loading={loadingRecommendation || loadingWeekly} />
+        <ClosetRecommendationCard
+          data={closetRecommendation}
+          loading={loadingClosetRecommendation}
+          hasToken={hasToken}
+          error={closetError}
+        />
       </section>
 
       {showMemberOnlyModal && (
         <div className="modalBackdrop" role="dialog" aria-modal="true" aria-label="회원 전용 안내">
           <div className="modalCard">
             <h3>회원 전용 기능입니다.</h3>
-            <p className="muted">로그인 또는 회원가입 후 날짜별 추천을 이용할 수 있어요.</p>
+            <p className="muted">로그인하면 날짜별 추천을 확인할 수 있습니다.</p>
             <div className="modalActions">
-              <button
-                className="primaryBtn"
-                type="button"
+              <PrimaryButton
                 onClick={() => {
                   setShowMemberOnlyModal(false);
                   router.push("/login");
                 }}
               >
                 로그인
-              </button>
-              <button
-                className="ghostBtn"
-                type="button"
+              </PrimaryButton>
+              <SecondaryButton
                 onClick={() => {
                   setShowMemberOnlyModal(false);
                   router.push("/signup");
                 }}
               >
                 회원가입
-              </button>
-              <button className="ghostBtn" type="button" onClick={() => setShowMemberOnlyModal(false)}>
-                닫기
-              </button>
+              </SecondaryButton>
+              <SecondaryButton onClick={() => setShowMemberOnlyModal(false)}>닫기</SecondaryButton>
             </div>
           </div>
         </div>

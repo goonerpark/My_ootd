@@ -35,7 +35,8 @@ public class WeeklyRecommendationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        List<WeatherCache> weatherCaches = weatherQueryService.getOrFetchWeatherCaches(LocalDate.now(), 7);
+        // today + 7 days (total 8 days)
+        List<WeatherCache> weatherCaches = weatherQueryService.getOrFetchWeatherCaches(LocalDate.now(), 8);
         List<WeeklyRecommendationResponse> responses = new ArrayList<>();
 
         for (WeatherCache weatherCache : weatherCaches) {

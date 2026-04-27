@@ -1,4 +1,4 @@
-import {
+﻿import {
   COLD_SENSITIVITY_OPTIONS,
   DURATION_OPTIONS,
   MOBILITY_OPTIONS,
@@ -24,8 +24,9 @@ export function SurveyWizardForm({ initialValue, loading, onSubmit }: Props) {
   };
 
   return (
-    <form className="panel form" onSubmit={submit}>
-      <h2>오늘의 추천을 위한 설문</h2>
+    <form className="sectionCard form" onSubmit={submit}>
+      <h2>오늘 추천을 위한 설문</h2>
+
       <SurveyQuestionCard
         title="1. 오늘 외출 목적은 무엇인가요?"
         name="outingPurpose"
@@ -59,7 +60,7 @@ export function SurveyWizardForm({ initialValue, loading, onSubmit }: Props) {
         onChange={(styleMood) => setForm((prev) => ({ ...prev, styleMood }))}
       />
       <SurveyQuestionCard
-        title="5. 추위를 얼마나 타나요?"
+        title="5. 추위를 얼마나 타시나요?"
         name="coldSensitivity"
         value={form.coldSensitivity}
         options={COLD_SENSITIVITY_OPTIONS}
@@ -73,7 +74,7 @@ export function SurveyWizardForm({ initialValue, loading, onSubmit }: Props) {
           className="input textarea"
           value={form.notes}
           onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-          placeholder="예: 실내외 이동이 많아요. 비바람이 조금 걱정돼요."
+          placeholder="예: 실내 이동이 많고 비바람이 걱정돼요"
           maxLength={255}
           disabled={loading}
         />

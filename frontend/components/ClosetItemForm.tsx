@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import type {
@@ -113,7 +113,7 @@ export function ClosetItemForm({ mode, loading, initialItem, onSubmit, onCancelE
   };
 
   return (
-    <section className="panel">
+    <section className="sectionCard">
       <h2>{mode === "edit" ? "옷 정보 수정" : "옷 등록"}</h2>
       <div className="form">
         <label className="field">
@@ -133,7 +133,7 @@ export function ClosetItemForm({ mode, loading, initialItem, onSubmit, onCancelE
         </label>
 
         <label className="field">
-          <span>세부 카테고리</span>
+          <span>서브 카테고리</span>
           <input className="input" value={subcategory} onChange={(event) => setSubcategory(event.target.value)} maxLength={50} />
         </label>
 
@@ -186,7 +186,7 @@ export function ClosetItemForm({ mode, loading, initialItem, onSubmit, onCancelE
             value={memo}
             onChange={(event) => setMemo(event.target.value)}
             maxLength={255}
-            placeholder="예: 출근용, 비오는 날용"
+            placeholder="예: 출근, 비 오는 날에 자주 입는 옷"
           />
         </label>
 
@@ -212,7 +212,7 @@ export function ClosetItemForm({ mode, loading, initialItem, onSubmit, onCancelE
           />
         </label>
 
-        {previewUrl && <img className="closetFormPreview" src={previewUrl} alt="옷 미리보기" />}
+        {previewUrl && <img className="closetFormPreview" src={previewUrl} alt="옷 이미지 미리보기" />}
 
         <div className="inlineActions">
           <button className="primaryBtn" type="button" onClick={submitForm} disabled={loading}>

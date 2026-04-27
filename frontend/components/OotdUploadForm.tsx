@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo } from "react";
 
@@ -32,7 +32,7 @@ export function OotdUploadForm({
   }, [previewUrls]);
 
   return (
-    <section className="panel">
+    <section className="sectionCard">
       <h2>OOTD 업로드</h2>
       <div className="form">
         <label className="field">
@@ -46,7 +46,7 @@ export function OotdUploadForm({
             value={notes}
             onChange={(event) => onChangeNotes(event.target.value)}
             maxLength={255}
-            placeholder="예: 출근 코디, 캐주얼 무드"
+            placeholder="예: 친구 약속, 출근 코디, 캐주얼 무드"
           />
         </label>
         <label className="field">

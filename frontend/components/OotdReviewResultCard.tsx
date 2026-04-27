@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import type { OotdReview } from "@/lib/api/types";
+import { EmptyState } from "@/components/ui";
 
 type OotdReviewResultCardProps = {
   title: string;
@@ -23,7 +24,7 @@ function canRenderImage(url: string) {
 
 function renderStars(rating: number) {
   const rounded = Math.max(0, Math.min(5, Math.round(rating)));
-  return "\u2605".repeat(rounded) + "\u2606".repeat(5 - rounded);
+  return "★".repeat(rounded) + "☆".repeat(5 - rounded);
 }
 
 function splitFeedback(text: string | null) {
@@ -35,11 +36,11 @@ function splitFeedback(text: string | null) {
   }
 
   const sentences = text
-    .split(/(?<=[.!?]|[다요])\s+/)
+    .split(/(?<=[.!?]|요)\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const improveKeywords = ["아쉽", "부족", "개선", "과하", "주의", "어색", "단조", "약하", "불균형"];
+  const improveKeywords = ["아쉽", "부족", "개선", "과하", "주의", "이색", "조화", "불균형"];
   const improve = sentences.filter((s) => improveKeywords.some((k) => s.includes(k)));
   const good = sentences.filter((s) => !improve.includes(s));
 
@@ -99,9 +100,9 @@ function FeedbackCard({
 export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProps) {
   if (!review) {
     return (
-      <section className="panel">
+      <section className="sectionCard">
         <h2>{title}</h2>
-        <p className="muted">표시할 평가 결과가 없습니다.</p>
+        <EmptyState description="표시할 평가 결과가 없습니다." />
       </section>
     );
   }
@@ -110,7 +111,7 @@ export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProp
   const displayImage = mappedImageUrls.find(canRenderImage);
 
   return (
-    <section className="panel">
+    <section className="sectionCard">
       <h2>{title}</h2>
 
       <div className="ootdResultLayout">
@@ -120,9 +121,7 @@ export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProp
           ) : (
             <div className="ootdResultImageFallback">이미지를 표시할 수 없습니다.</div>
           )}
-          {!displayImage && mappedImageUrls.length > 0 && (
-            <p className="ootdStorageUrl">저장 URL: {mappedImageUrls[0]}</p>
-          )}
+          {!displayImage && mappedImageUrls.length > 0 && <p className="ootdStorageUrl">저장 URL: {mappedImageUrls[0]}</p>}
         </div>
 
         <div className="ootdResultInfoCol">

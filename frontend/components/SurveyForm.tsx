@@ -1,4 +1,4 @@
-import type { OutingPurpose, UpsertSurveyPayload } from "@/lib/api/types";
+﻿import type { OutingPurpose, UpsertSurveyPayload } from "@/lib/api/types";
 import { useState } from "react";
 
 type Props = {
@@ -32,7 +32,7 @@ export function SurveyForm({ initialPurpose, initialNotes, loading, onSubmit }: 
   };
 
   return (
-    <form className="panel form" onSubmit={handleSubmit}>
+    <form className="sectionCard form" onSubmit={handleSubmit}>
       <h2>오늘 외출 목적 설문</h2>
       <label className="field">
         <span>외출 목적(TPO)</span>
@@ -57,7 +57,7 @@ export function SurveyForm({ initialPurpose, initialNotes, loading, onSubmit }: 
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           maxLength={255}
-          placeholder="예: 미팅이 많아서 단정한 느낌 원해요."
+          placeholder="예: 미팅이 많아 단정한 스타일을 원해요"
           disabled={loading}
         />
       </label>

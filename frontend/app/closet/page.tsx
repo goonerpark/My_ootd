@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClosetItemCard } from "@/components/ClosetItemCard";
 import { ClosetItemForm } from "@/components/ClosetItemForm";
 import {
@@ -14,6 +14,8 @@ import {
 } from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
 import type { ClosetItem, UpsertClosetItemPayload } from "@/lib/api/types";
+import { getClosetCategoryLabel } from "@/lib/closet/options";
+import { ErrorMessage, EmptyState, LoadingState, PageHeader, PrimaryButton, SectionCard, SecondaryButton } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") {
@@ -31,8 +33,27 @@ export default function ClosetPage() {
   const [editingItem, setEditingItem] = useState<ClosetItem | null>(null);
   const [loadingList, setLoadingList] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const orderedCategories = useMemo(() => ["OUTER", "TOP", "BOTTOM", "SHOES", "ACCESSORY"] as const, []);
+
+  const groupedItems = useMemo(() => {
+    const grouped: Record<(typeof orderedCategories)[number], ClosetItem[]> = {
+      OUTER: [],
+      TOP: [],
+      BOTTOM: [],
+      SHOES: [],
+      ACCESSORY: []
+    };
+    for (const item of items) {
+      if (item.category in grouped) {
+        grouped[item.category as keyof typeof grouped].push(item);
+      }
+    }
+    return grouped;
+  }, [items, orderedCategories]);
 
   useEffect(() => {
     setToken(getAccessTokenFromStorage());
@@ -75,12 +96,11 @@ export default function ClosetPage() {
     try {
       await createClosetItem(token, payload);
       await loadItems(token);
+      setShowCreateForm(false);
       setSuccess("옷이 등록되었습니다.");
     } catch (err) {
       const message =
-        err instanceof ApiRequestError || err instanceof Error
-          ? toKoreanErrorMessage(err.message)
-          : "옷 등록에 실패했습니다.";
+        err instanceof ApiRequestError || err instanceof Error ? toKoreanErrorMessage(err.message) : "옷 등록에 실패했습니다.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -117,9 +137,7 @@ export default function ClosetPage() {
       setSuccess("옷 정보가 수정되었습니다.");
     } catch (err) {
       const message =
-        err instanceof ApiRequestError || err instanceof Error
-          ? toKoreanErrorMessage(err.message)
-          : "옷 수정에 실패했습니다.";
+        err instanceof ApiRequestError || err instanceof Error ? toKoreanErrorMessage(err.message) : "옷 수정에 실패했습니다.";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -131,7 +149,7 @@ export default function ClosetPage() {
       setError("로그인이 필요한 기능입니다.");
       return;
     }
-    const confirmed = window.confirm("이 옷 아이템을 삭제하시겠어요?");
+    const confirmed = window.confirm("이 아이템을 삭제하시겠어요?");
     if (!confirmed) {
       return;
     }
@@ -154,11 +172,8 @@ export default function ClosetPage() {
     return (
       <main className="page">
         <section className="container">
-          <header className="header">
-            <h1>나의 옷장</h1>
-            <p>회원 전용 기능</p>
-          </header>
-          <section className="panel">
+          <PageHeader title="나의 옷장" subtitle="회원 전용 기능" />
+          <SectionCard>
             <p className="muted">로그인 후 옷 등록/수정/삭제 기능을 사용할 수 있어요.</p>
             <div className="inlineActions">
               <Link className="primaryBtn" href="/login">
@@ -168,7 +183,7 @@ export default function ClosetPage() {
                 회원가입
               </Link>
             </div>
-          </section>
+          </SectionCard>
         </section>
       </main>
     );
@@ -177,10 +192,7 @@ export default function ClosetPage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>나의 옷장</h1>
-          <p>등록한 옷을 관리하고 OOTD 추천에 활용할 수 있도록 정리하세요.</p>
-        </header>
+        <PageHeader title="나의 옷장" subtitle="등록한 옷을 관리하고 추천과 연동해 보세요." />
 
         <p className="muted">
           <Link className="textLink" href="/">
@@ -188,7 +200,14 @@ export default function ClosetPage() {
           </Link>
         </p>
 
-        <ClosetItemForm mode="create" loading={submitting} onSubmit={handleCreate} />
+        {showCreateForm && (
+          <ClosetItemForm
+            mode="create"
+            loading={submitting}
+            onSubmit={handleCreate}
+            onCancelEdit={() => setShowCreateForm(false)}
+          />
+        )}
 
         {editingItem && (
           <ClosetItemForm
@@ -201,28 +220,55 @@ export default function ClosetPage() {
         )}
 
         {success && <p className="success">{success}</p>}
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
 
-        <section className="panel">
-          <h2>내 옷 목록</h2>
+        <SectionCard title="옷 목록">
           {loadingList ? (
-            <p className="muted">목록을 불러오는 중...</p>
+            <LoadingState label="목록을 불러오는 중입니다..." />
           ) : items.length === 0 ? (
-            <p className="muted">등록된 옷이 없습니다.</p>
+            <EmptyState description="등록한 옷이 없습니다." />
           ) : (
-            <div className="closetGrid">
-              {items.map((item) => (
-                <ClosetItemCard
-                  key={item.id}
-                  item={item}
-                  selected={editingItem?.id === item.id}
-                  onSelect={handleEditSelect}
-                  onDelete={handleDelete}
-                />
+            <div className="closetCategoryList">
+              {orderedCategories.map((category) => (
+                <section key={category} className="closetCategorySection">
+                  <h3 className="closetCategoryTitle">
+                    {getClosetCategoryLabel(category)} ({groupedItems[category].length})
+                  </h3>
+                  {groupedItems[category].length === 0 ? (
+                    <p className="muted">등록한 아이템이 없습니다.</p>
+                  ) : (
+                    <div className="closetGrid">
+                      {groupedItems[category].map((item) => (
+                        <ClosetItemCard
+                          key={item.id}
+                          item={item}
+                          selected={editingItem?.id === item.id}
+                          onSelect={handleEditSelect}
+                          onDelete={handleDelete}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
               ))}
             </div>
           )}
-        </section>
+        </SectionCard>
+
+        {!showCreateForm && (
+          <div className="closetFloatingCreate">
+            <button className="closetFab" type="button" onClick={() => setShowCreateForm(true)} aria-label="옷 등록 열기">
+              +
+            </button>
+          </div>
+        )}
+
+        {showCreateForm && (
+          <div className="inlineActions">
+            <SecondaryButton onClick={() => setShowCreateForm(false)}>등록 폼 닫기</SecondaryButton>
+            {editingItem && <PrimaryButton onClick={() => setEditingItem(null)}>수정 종료</PrimaryButton>}
+          </div>
+        )}
       </section>
     </main>
   );

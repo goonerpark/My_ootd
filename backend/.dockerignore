@@ -1,0 +1,9 @@
+﻿.gradle
+build
+target
+bin
+uploads
+*.log
+*.out.log
+*.err.log
+*.tmp

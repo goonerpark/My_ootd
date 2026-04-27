@@ -1,4 +1,4 @@
-import type { OutingPurpose } from "@/lib/api/types";
+﻿import type { OutingPurpose } from "@/lib/api/types";
 import type { ColdSensitivity, Duration, Mobility, StyleMood } from "./types";
 
 export const OUTING_PURPOSE_OPTIONS: Array<{ value: OutingPurpose; label: string }> = [
@@ -43,17 +43,20 @@ export const OUTING_PURPOSE_LABELS = Object.fromEntries(
   OUTING_PURPOSE_OPTIONS.map((option) => [option.value, option.label])
 ) as Record<OutingPurpose, string>;
 
-export const DURATION_LABELS = Object.fromEntries(
-  DURATION_OPTIONS.map((option) => [option.value, option.label])
-) as Record<Duration, string>;
+export const DURATION_LABELS = Object.fromEntries(DURATION_OPTIONS.map((option) => [option.value, option.label])) as Record<
+  Duration,
+  string
+>;
 
-export const MOBILITY_LABELS = Object.fromEntries(
-  MOBILITY_OPTIONS.map((option) => [option.value, option.label])
-) as Record<Mobility, string>;
+export const MOBILITY_LABELS = Object.fromEntries(MOBILITY_OPTIONS.map((option) => [option.value, option.label])) as Record<
+  Mobility,
+  string
+>;
 
-export const STYLE_MOOD_LABELS = Object.fromEntries(
-  STYLE_MOOD_OPTIONS.map((option) => [option.value, option.label])
-) as Record<StyleMood, string>;
+export const STYLE_MOOD_LABELS = Object.fromEntries(STYLE_MOOD_OPTIONS.map((option) => [option.value, option.label])) as Record<
+  StyleMood,
+  string
+>;
 
 export const COLD_SENSITIVITY_LABELS = Object.fromEntries(
   COLD_SENSITIVITY_OPTIONS.map((option) => [option.value, option.label])

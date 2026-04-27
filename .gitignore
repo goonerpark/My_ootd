@@ -42,8 +42,23 @@ build/
 .DS_Store
 Thumbs.db
 
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
 # Gradle cache
 backend/.gradle-user-home/
 backend/.gradle-user-home-2/
+backend/.gradle-user-home-docker/
+backend/.gradle-user-home-docker2/
+backend/.gradle-user-home-docker*/
+backend/.gradle-user-home-*/
 **/.gradle/
 **/build/

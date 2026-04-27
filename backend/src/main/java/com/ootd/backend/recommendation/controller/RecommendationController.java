@@ -2,7 +2,9 @@ package com.ootd.backend.recommendation.controller;
 
 import com.ootd.backend.common.api.ApiResponse;
 import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
+import com.ootd.backend.recommendation.dto.TodayClosetRecommendationResponse;
 import com.ootd.backend.recommendation.dto.WeeklyRecommendationResponse;
+import com.ootd.backend.recommendation.service.MemberClosetRecommendationService;
 import com.ootd.backend.recommendation.service.RecommendationService;
 import com.ootd.backend.recommendation.service.WeeklyRecommendationService;
 import com.ootd.backend.security.auth.CustomUserDetails;
@@ -28,6 +30,7 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
     private final WeeklyRecommendationService weeklyRecommendationService;
+    private final MemberClosetRecommendationService memberClosetRecommendationService;
 
     @GetMapping("/today")
     public ResponseEntity<ApiResponse<TodayRecommendationResponse>> getTodayRecommendation(
@@ -55,5 +58,15 @@ public class RecommendationController {
             throw new AuthenticationFailedException("Authentication is required");
         }
         return ResponseEntity.ok(ApiResponse.ok(weeklyRecommendationService.getWeeklyRecommendations(userDetails.getUserId())));
+    }
+
+    @GetMapping("/today/closet")
+    public ResponseEntity<ApiResponse<TodayClosetRecommendationResponse>> getTodayClosetRecommendation(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null || userDetails.getUserId() == null) {
+            throw new AuthenticationFailedException("Authentication is required");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(memberClosetRecommendationService.getTodayClosetRecommendation(userDetails.getUserId())));
     }
 }

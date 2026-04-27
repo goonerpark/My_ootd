@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signUp } from "@/lib/api/client";
 import type { Gender } from "@/lib/api/types";
+import { ErrorMessage, PageHeader, SectionCard } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Email is already in use") {
@@ -14,7 +15,7 @@ function toKoreanErrorMessage(message: string) {
     return "이미 사용 중인 닉네임입니다.";
   }
   if (message === "Unexpected server error") {
-    return "서버에서 예기치 않은 오류가 발생했습니다.";
+    return "서버에서 예기치 못한 오류가 발생했습니다.";
   }
   return message;
 }
@@ -51,21 +52,12 @@ export default function SignUpPage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>회원가입</h1>
-          <p>설문 기반 추천 사용을 위한 기본 계정을 생성합니다.</p>
-        </header>
+        <PageHeader title="회원가입" subtitle="회원 전용 설문/추천 기능을 위한 계정을 생성합니다." />
 
-        <form className="panel form" onSubmit={onSubmit}>
+        <form className="sectionCard form" onSubmit={onSubmit}>
           <label className="field">
             <span>이메일</span>
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+            <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
           <label className="field">
             <span>비밀번호</span>
@@ -103,16 +95,21 @@ export default function SignUpPage() {
         </form>
 
         {success && <p className="success">{success}</p>}
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
 
-        <section className="panel">
+        <SectionCard>
           <p className="muted">
-            이미 계정이 있나요? <Link className="textLink" href="/login">로그인</Link>
+            이미 계정이 있나요?{" "}
+            <Link className="textLink" href="/login">
+              로그인
+            </Link>
           </p>
           <p className="muted">
-            <Link className="textLink" href="/">메인으로 이동</Link>
+            <Link className="textLink" href="/">
+              메인으로 이동
+            </Link>
           </p>
-        </section>
+        </SectionCard>
       </section>
     </main>
   );

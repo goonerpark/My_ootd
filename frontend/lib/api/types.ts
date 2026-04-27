@@ -135,6 +135,25 @@ export type CreateOotdReviewPayload = {
   images: File[];
 };
 
+export type OotdClosetSuggestion = {
+  slot?: "TOP" | "OUTER" | "BOTTOM" | "SHOES" | "ACCESSORY";
+  closetItemId: number;
+  category: "TOP" | "OUTER" | "BOTTOM" | "SHOES" | "ACCESSORY";
+  color?: string | null;
+  season?: "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | "ALL" | null;
+  thickness?: "THIN" | "NORMAL" | "THICK" | null;
+  fit?: "SLIM" | "REGULAR" | "OVER" | "WIDE" | "UNKNOWN" | null;
+  brand?: string | null;
+  imageUrl?: string | null;
+  memo?: string | null;
+  reason: string;
+};
+
+export type OotdClosetSuggestionsResult = {
+  message: string;
+  suggestions: OotdClosetSuggestion[];
+};
+
 export type ClosetCategory = "TOP" | "OUTER" | "BOTTOM" | "SHOES" | "ACCESSORY";
 export type ClosetSeason = "SPRING" | "SUMMER" | "AUTUMN" | "WINTER" | "ALL";
 export type ClosetThickness = "THIN" | "NORMAL" | "THICK";
@@ -168,4 +187,34 @@ export type UpsertClosetItemPayload = {
   memo?: string;
   imageUrl?: string;
   imageFile?: File | null;
+};
+
+export type RecommendationSlot = "TOP" | "OUTER" | "BOTTOM" | "SHOES" | "ACCESSORY";
+
+export type ClosetRecommendedItem = {
+  slot: RecommendationSlot;
+  closetItemId: number;
+  category: ClosetCategory;
+  subcategory: string | null;
+  color: string | null;
+  season: ClosetSeason;
+  thickness: ClosetThickness;
+  fit: ClosetFit;
+  brand: string | null;
+  imageUrl: string;
+  memo: string | null;
+  reason: string;
+};
+
+export type TodayClosetRecommendation = {
+  targetDate: string;
+  recommendationType: "MEMBER_CLOSET";
+  weather: TodayWeather;
+  top: string;
+  outer: string;
+  bottom: string;
+  shoes: string;
+  accessory: string;
+  summaryComment: string;
+  closetItems: ClosetRecommendedItem[];
 };

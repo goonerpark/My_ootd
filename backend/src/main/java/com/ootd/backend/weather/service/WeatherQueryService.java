@@ -52,7 +52,7 @@ public class WeatherQueryService {
         try {
             return saveCacheInNewTransaction(snapshot);
         } catch (DataIntegrityViolationException ex) {
-            return weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode)
+            return findCacheInNewTransaction(today, regionCode)
                     .orElseThrow(() -> ex);
         }
     }
@@ -65,7 +65,7 @@ public class WeatherQueryService {
 
     @Transactional
     public List<WeatherCache> getOrFetchWeatherCaches(LocalDate startDate, int days) {
-        int safeDays = Math.max(1, Math.min(days, 7));
+        int safeDays = Math.max(1, Math.min(days, 8));
         String regionCode = weatherProperties.getOpenweather().getRegionCode();
         LocalDate endDate = startDate.plusDays(safeDays - 1L);
 
@@ -102,7 +102,7 @@ public class WeatherQueryService {
                     WeatherCache saved = saveCacheInNewTransaction(snapshot);
                     cacheByDate.put(saved.getTargetDate(), saved);
                 } catch (DataIntegrityViolationException ex) {
-                    weatherCacheRepository.findByTargetDateAndRegionCode(missingDate, regionCode)
+                    findCacheInNewTransaction(missingDate, regionCode)
                             .ifPresent(cache -> cacheByDate.put(cache.getTargetDate(), cache));
                 }
             }
@@ -170,7 +170,23 @@ public class WeatherQueryService {
             if (snapshots == null || snapshots.isEmpty()) {
                 return mockProvider.fetchWeekly(startDate, days);
             }
-            return snapshots;
+            if (snapshots.size() >= days) {
+                return snapshots;
+            }
+
+            List<WeatherSnapshot> mockSnapshots = mockProvider.fetchWeekly(startDate, days);
+            Map<LocalDate, WeatherSnapshot> mergedByDate = new HashMap<>();
+            for (WeatherSnapshot snapshot : snapshots) {
+                mergedByDate.put(snapshot.targetDate(), snapshot);
+            }
+            for (WeatherSnapshot mockSnapshot : mockSnapshots) {
+                mergedByDate.putIfAbsent(mockSnapshot.targetDate(), mockSnapshot);
+            }
+
+            return startDate.datesUntil(startDate.plusDays(days))
+                    .map(mergedByDate::get)
+                    .filter(snapshot -> snapshot != null)
+                    .toList();
         } catch (Exception ex) {
             return mockProvider.fetchWeekly(startDate, days);
         }
@@ -202,6 +218,13 @@ public class WeatherQueryService {
                     .build();
             return weatherCacheRepository.save(cache);
         });
+    }
+
+    private Optional<WeatherCache> findCacheInNewTransaction(LocalDate targetDate, String regionCode) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setReadOnly(true);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return template.execute(status -> weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, regionCode));
     }
 
     private WeatherCache updateCacheInNewTransaction(Long cacheId, WeatherSnapshot snapshot) {

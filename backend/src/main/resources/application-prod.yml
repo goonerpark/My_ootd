@@ -1,0 +1,15 @@
+﻿spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    open-in-view: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+
+# Production profile
+# - set all secrets via environment variables
+# - use strict CORS origins
+# - keep ddl-auto as none (managed schema)

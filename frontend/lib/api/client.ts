@@ -1,10 +1,12 @@
 import type {
   ApiResponse,
   ClosetItem,
+  TodayClosetRecommendation,
   CreateOotdReviewPayload,
   Gender,
   LoginRequest,
   LoginResult,
+  OotdClosetSuggestionsResult,
   OotdReview,
   SignUpRequest,
   SignUpResult,
@@ -110,6 +112,10 @@ export function fetchTodayMemberRecommendation(token: string) {
   return request<TodayRecommendation>("/api/recommendations/member/today", { token });
 }
 
+export function fetchTodayClosetRecommendation(token: string) {
+  return request<TodayClosetRecommendation>("/api/recommendations/today/closet", { token });
+}
+
 export function fetchWeeklyRecommendations(token: string) {
   return request<WeeklyRecommendationItem[]>("/api/recommendations/weekly", { token });
 }
@@ -181,6 +187,10 @@ export function fetchOotdReviews(token: string) {
 
 export function fetchOotdReviewDetail(token: string, id: number) {
   return request<OotdReview>(`/api/ootd-reviews/${id}`, { token });
+}
+
+export function fetchOotdClosetSuggestions(token: string, reviewId: number) {
+  return request<OotdClosetSuggestionsResult>(`/api/ootd-reviews/${reviewId}/closet-suggestions`, { token });
 }
 
 function buildClosetFormData(payload: UpsertClosetItemPayload) {

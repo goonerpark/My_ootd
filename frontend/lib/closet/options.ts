@@ -1,4 +1,4 @@
-import type { ClosetCategory, ClosetFit, ClosetSeason, ClosetThickness } from "@/lib/api/types";
+﻿import type { ClosetCategory, ClosetFit, ClosetSeason, ClosetThickness } from "@/lib/api/types";
 
 export const CLOSET_CATEGORY_OPTIONS: Array<{ value: ClosetCategory; label: string }> = [
   { value: "TOP", label: "상의" },

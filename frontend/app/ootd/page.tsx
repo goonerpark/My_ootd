@@ -1,13 +1,21 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ApiRequestError, createOotdReview, fetchOotdReviewDetail, fetchOotdReviews } from "@/lib/api/client";
+import {
+  ApiRequestError,
+  createOotdReview,
+  fetchOotdClosetSuggestions,
+  fetchOotdReviewDetail,
+  fetchOotdReviews
+} from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
-import type { OotdReview } from "@/lib/api/types";
+import type { OotdClosetSuggestionsResult, OotdReview } from "@/lib/api/types";
 import { OotdReviewList } from "@/components/OotdReviewList";
 import { OotdReviewResultCard } from "@/components/OotdReviewResultCard";
+import { OotdClosetSuggestionSection } from "@/components/OotdClosetSuggestionSection";
 import { OotdUploadForm } from "@/components/OotdUploadForm";
+import { ErrorMessage, PageHeader, SectionCard } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") {
@@ -36,11 +44,14 @@ export default function OotdPage() {
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
   const [selectedReview, setSelectedReview] = useState<OotdReview | null>(null);
   const [lastUploadedReview, setLastUploadedReview] = useState<OotdReview | null>(null);
+  const [closetSuggestions, setClosetSuggestions] = useState<OotdClosetSuggestionsResult | null>(null);
 
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingClosetSuggestions, setLoadingClosetSuggestions] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [closetSuggestionError, setClosetSuggestionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,6 +92,8 @@ export default function OotdPage() {
   useEffect(() => {
     if (!token || selectedReviewId == null) {
       setSelectedReview(null);
+      setClosetSuggestions(null);
+      setClosetSuggestionError(null);
       return;
     }
 
@@ -98,6 +111,30 @@ export default function OotdPage() {
     };
 
     loadDetail();
+  }, [selectedReviewId, token]);
+
+  useEffect(() => {
+    if (!token || selectedReviewId == null) {
+      setClosetSuggestions(null);
+      setClosetSuggestionError(null);
+      return;
+    }
+
+    const loadClosetSuggestions = async () => {
+      setLoadingClosetSuggestions(true);
+      setClosetSuggestionError(null);
+      try {
+        const data = await fetchOotdClosetSuggestions(token, selectedReviewId);
+        setClosetSuggestions(data);
+      } catch (err) {
+        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "대체 추천 조회에 실패했습니다.";
+        setClosetSuggestionError(message);
+      } finally {
+        setLoadingClosetSuggestions(false);
+      }
+    };
+
+    loadClosetSuggestions();
   }, [selectedReviewId, token]);
 
   const submitUpload = async () => {
@@ -127,9 +164,7 @@ export default function OotdPage() {
       setSelectedReviewId(created.id);
     } catch (err) {
       const message =
-        err instanceof ApiRequestError || err instanceof Error
-          ? toKoreanErrorMessage(err.message)
-          : "업로드에 실패했습니다.";
+        err instanceof ApiRequestError || err instanceof Error ? toKoreanErrorMessage(err.message) : "업로드에 실패했습니다.";
       setError(message);
     } finally {
       setUploading(false);
@@ -147,11 +182,8 @@ export default function OotdPage() {
     return (
       <main className="page">
         <section className="container">
-          <header className="header">
-            <h1>OOTD 리뷰</h1>
-            <p>회원 전용 기능</p>
-          </header>
-          <section className="panel">
+          <PageHeader title="OOTD 리뷰" subtitle="회원 전용 기능" />
+          <SectionCard>
             <p className="muted">로그인이 필요한 기능입니다. 로그인 후 OOTD 업로드와 리뷰 조회를 이용할 수 있어요.</p>
             <div className="inlineActions">
               <Link className="primaryBtn" href="/login">
@@ -161,7 +193,7 @@ export default function OotdPage() {
                 회원가입
               </Link>
             </div>
-          </section>
+          </SectionCard>
         </section>
       </main>
     );
@@ -170,10 +202,7 @@ export default function OotdPage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>OOTD 리뷰</h1>
-          <p>업로드한 사진을 기준으로 별점과 핏/색 조합/종합 피드백을 확인하세요.</p>
-        </header>
+        <PageHeader title="OOTD 리뷰" subtitle="업로드한 사진 기준으로 별점과 피드백을 확인하세요." />
 
         <p className="muted">
           <Link className="textLink" href="/">
@@ -193,18 +222,14 @@ export default function OotdPage() {
         />
 
         {success && <p className="success">{success}</p>}
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
 
         <OotdReviewResultCard title="방금 업로드한 평가 결과" review={lastUploadedReview} />
 
-        <OotdReviewList
-          reviews={reviews}
-          selectedReviewId={selectedReviewId}
-          loading={loadingList}
-          onSelect={setSelectedReviewId}
-        />
+        <OotdReviewList reviews={reviews} selectedReviewId={selectedReviewId} loading={loadingList} onSelect={setSelectedReviewId} />
 
         <OotdReviewResultCard title={detailCardTitle} review={selectedReview} />
+        <OotdClosetSuggestionSection data={closetSuggestions} loading={loadingClosetSuggestions} error={closetSuggestionError} />
       </section>
     </main>
   );

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,13 +8,14 @@ import { ApiRequestError, fetchTodaySurvey, upsertTodaySurvey } from "@/lib/api/
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
 import { saveSurveyState } from "@/lib/survey/storage";
 import { DEFAULT_SURVEY_FORM_STATE, type SurveyFormState } from "@/lib/survey/types";
+import { ErrorMessage, LoadingState, PageHeader, SectionCard } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") {
     return "로그인이 필요한 기능입니다.";
   }
   if (message === "Unexpected server error") {
-    return "서버에서 예기치 않은 오류가 발생했습니다.";
+    return "서버에서 예기치 못한 오류가 발생했습니다.";
   }
   return message;
 }
@@ -93,17 +94,19 @@ export default function SurveyPage() {
     return (
       <main className="page">
         <section className="container">
-          <header className="header">
-            <h1>설문 페이지</h1>
-            <p>회원 전용 기능</p>
-          </header>
-          <section className="panel">
+          <PageHeader title="설문 페이지" subtitle="회원 전용 기능" />
+          <SectionCard>
             <p className="muted">로그인이 필요한 기능입니다. 로그인 후 설문을 작성해 주세요.</p>
             <p className="muted">
-              <Link className="textLink" href="/login">로그인</Link> /{" "}
-              <Link className="textLink" href="/signup">회원가입</Link>
+              <Link className="textLink" href="/login">
+                로그인
+              </Link>{" "}
+              /{" "}
+              <Link className="textLink" href="/signup">
+                회원가입
+              </Link>
             </p>
-          </section>
+          </SectionCard>
         </section>
       </main>
     );
@@ -112,24 +115,17 @@ export default function SurveyPage() {
   return (
     <main className="page">
       <section className="container">
-        <header className="header">
-          <h1>오늘의 추천 설문</h1>
-          <p>간단한 질문 5개에 답하면 오늘 추천을 더 정확하게 보정해요.</p>
-        </header>
+        <PageHeader title="오늘 추천 설문" subtitle="간단한 질문 5개에 답하면 추천 정확도가 높아집니다." />
 
         <p className="muted">
-          <Link className="textLink" href="/">메인으로 이동</Link>
+          <Link className="textLink" href="/">
+            메인으로 이동
+          </Link>
         </p>
 
-        {loadingInit ? (
-          <section className="panel">
-            <p className="muted">설문 초기값을 불러오는 중...</p>
-          </section>
-        ) : (
-          <SurveyWizardForm initialValue={initialForm} loading={submitting} onSubmit={submitSurvey} />
-        )}
+        {loadingInit ? <LoadingState label="설문 초기값을 불러오는 중입니다..." /> : <SurveyWizardForm initialValue={initialForm} loading={submitting} onSubmit={submitSurvey} />}
 
-        {error && <p className="error">{error}</p>}
+        {error && <ErrorMessage message={error} />}
       </section>
     </main>
   );

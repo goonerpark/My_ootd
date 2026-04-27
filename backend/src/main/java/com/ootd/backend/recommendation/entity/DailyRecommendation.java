@@ -87,4 +87,24 @@ public class DailyRecommendation {
         this.accessoryItem = accessoryItem;
         this.summaryComment = summaryComment;
     }
+
+    public void update(Long weatherCacheId,
+                       Gender gender,
+                       RecommendationType recommendationType,
+                       String topItem,
+                       String outerItem,
+                       String bottomItem,
+                       String shoesItem,
+                       String accessoryItem,
+                       String summaryComment) {
+        this.weatherCacheId = weatherCacheId;
+        this.gender = gender;
+        this.recommendationType = recommendationType;
+        this.topItem = topItem;
+        this.outerItem = outerItem;
+        this.bottomItem = bottomItem;
+        this.shoesItem = shoesItem;
+        this.accessoryItem = accessoryItem;
+        this.summaryComment = summaryComment;
+    }
 }

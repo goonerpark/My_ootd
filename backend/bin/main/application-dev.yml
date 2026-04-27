@@ -1,0 +1,11 @@
+﻿spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+# Dev profile keeps local-friendly defaults from application.yml.
+# Override only what you need in your local .env.

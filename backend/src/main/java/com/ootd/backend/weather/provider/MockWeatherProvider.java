@@ -45,7 +45,7 @@ public class MockWeatherProvider implements WeatherProvider {
 
     @Override
     public List<WeatherSnapshot> fetchWeekly(LocalDate startDate, int days) {
-        int size = Math.max(1, Math.min(days, 7));
+        int size = Math.max(1, Math.min(days, 8));
         List<WeatherSnapshot> snapshots = new ArrayList<>();
 
         for (int i = 0; i < size; i++) {

@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import type { OotdReview } from "@/lib/api/types";
+import { EmptyState, LoadingState } from "@/components/ui";
 
 type OotdReviewListProps = {
   reviews: OotdReview[];
@@ -26,24 +27,24 @@ function canRenderImage(url: string) {
 export function OotdReviewList({ reviews, selectedReviewId, loading, onSelect }: OotdReviewListProps) {
   if (loading) {
     return (
-      <section className="panel">
+      <section className="sectionCard">
         <h2>내 OOTD 리뷰 목록</h2>
-        <p className="muted">리뷰 목록을 불러오는 중...</p>
+        <LoadingState label="리뷰 목록을 불러오는 중입니다..." />
       </section>
     );
   }
 
   if (reviews.length === 0) {
     return (
-      <section className="panel">
+      <section className="sectionCard">
         <h2>내 OOTD 리뷰 목록</h2>
-        <p className="muted">아직 업로드한 리뷰가 없습니다.</p>
+        <EmptyState description="아직 업로드한 리뷰가 없습니다." />
       </section>
     );
   }
 
   return (
-    <section className="panel">
+    <section className="sectionCard">
       <h2>내 OOTD 리뷰 목록</h2>
       <div className="ootdList">
         {reviews.map((review) => {

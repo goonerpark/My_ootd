@@ -58,7 +58,7 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
             throw new IllegalStateException("OpenWeather response is invalid");
         }
 
-        int size = Math.max(1, Math.min(days, 7));
+        int size = Math.max(1, Math.min(days, 8));
         List<WeatherSnapshot> snapshots = new ArrayList<>();
         LocalDateTime fetchedAt = LocalDateTime.now();
         String rawJson = toJson(response);

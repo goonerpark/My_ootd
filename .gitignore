@@ -8,6 +8,7 @@ backend/target
 backend/.gradle
 backend/build
 backend/uploads
+backend/bin/
 
 # common
 .idea

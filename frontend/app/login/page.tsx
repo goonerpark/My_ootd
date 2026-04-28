@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,12 +8,8 @@ import { setAccessTokenToStorage, setAuthUserProfileToStorage } from "@/lib/auth
 import { ErrorMessage, PageHeader, SectionCard } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
-  if (message === "Invalid email or password") {
-    return "이메일 또는 비밀번호가 올바르지 않습니다.";
-  }
-  if (message === "Unexpected server error") {
-    return "서버에서 예기치 못한 오류가 발생했습니다.";
-  }
+  if (message === "Invalid email or password") return "이메일 또는 비밀번호가 올바르지 않습니다.";
+  if (message === "Unexpected server error") return "서버에서 예기치 못한 오류가 발생했습니다.";
   return message;
 }
 
@@ -34,7 +30,8 @@ export default function LoginPage() {
       setAuthUserProfileToStorage({
         userId: result.userId,
         email: result.email,
-        nickname: result.nickname
+        nickname: result.nickname,
+        gender: result.gender
       });
       router.push("/");
     } catch (err) {
@@ -75,15 +72,10 @@ export default function LoginPage() {
 
         <SectionCard>
           <p className="muted">
-            계정이 없나요?{" "}
-            <Link className="textLink" href="/signup">
-              회원가입
-            </Link>
+            계정이 없나요? <Link className="textLink" href="/signup">회원가입</Link>
           </p>
           <p className="muted">
-            <Link className="textLink" href="/">
-              메인으로 이동
-            </Link>
+            <Link className="textLink" href="/">메인으로 이동</Link>
           </p>
         </SectionCard>
       </section>

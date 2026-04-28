@@ -5,3 +5,4 @@ export * from "./LoadingState";
 export * from "./ErrorMessage";
 export * from "./PrimaryButton";
 export * from "./SecondaryButton";
+export * from "./AppLogo";

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AppShell } from "@/components/layout";
 import {
   ApiRequestError,
   createOotdReview,
@@ -15,7 +16,7 @@ import { OotdReviewList } from "@/components/OotdReviewList";
 import { OotdReviewResultCard } from "@/components/OotdReviewResultCard";
 import { OotdClosetSuggestionSection } from "@/components/OotdClosetSuggestionSection";
 import { OotdUploadForm } from "@/components/OotdUploadForm";
-import { ErrorMessage, PageHeader, SectionCard } from "@/components/ui";
+import { ErrorMessage } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") {
@@ -180,35 +181,33 @@ export default function OotdPage() {
 
   if (!token) {
     return (
-      <main className="page">
-        <section className="container">
-          <PageHeader title="OOTD 리뷰" subtitle="회원 전용 기능" />
-          <SectionCard>
-            <p className="muted">로그인이 필요한 기능입니다. 로그인 후 OOTD 업로드와 리뷰 조회를 이용할 수 있어요.</p>
-            <div className="inlineActions">
-              <Link className="primaryBtn" href="/login">
+      <AppShell activePath="/ootd">
+        <section className="rounded-3xl border border-surface-container bg-white p-8 shadow-soft">
+          <h1 className="font-headline-md text-headline-md">OOTD AI 평가</h1>
+          <p className="mt-2 text-secondary">로그인이 필요한 기능입니다. 로그인 후 OOTD 업로드와 리뷰 조회를 이용할 수 있어요.</p>
+          <div className="mt-5 flex gap-2">
+            <Link className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-white" href="/login">
                 로그인
-              </Link>
-              <Link className="ghostBtn" href="/signup">
+            </Link>
+            <Link className="rounded-full border border-outline-variant bg-white px-5 py-2 text-sm font-bold text-primary" href="/signup">
                 회원가입
-              </Link>
-            </div>
-          </SectionCard>
+            </Link>
+          </div>
         </section>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="page">
-      <section className="container">
-        <PageHeader title="OOTD 리뷰" subtitle="업로드한 사진 기준으로 별점과 피드백을 확인하세요." />
-
-        <p className="muted">
-          <Link className="textLink" href="/">
+    <AppShell activePath="/ootd">
+      <div className="space-y-12">
+        <section>
+          <h1 className="font-display-lg text-display-lg text-primary">OOTD AI 평가</h1>
+          <p className="mt-2 text-body-lg text-secondary">업로드한 사진 기준으로 별점과 피드백을 확인하세요.</p>
+          <Link className="mt-3 inline-flex text-sm font-bold text-primary underline" href="/">
             메인으로 이동
           </Link>
-        </p>
+        </section>
 
         <OotdUploadForm
           reviewDate={reviewDate}
@@ -230,7 +229,7 @@ export default function OotdPage() {
 
         <OotdReviewResultCard title={detailCardTitle} review={selectedReview} />
         <OotdClosetSuggestionSection data={closetSuggestions} loading={loadingClosetSuggestions} error={closetSuggestionError} />
-      </section>
-    </main>
+      </div>
+    </AppShell>
   );
 }

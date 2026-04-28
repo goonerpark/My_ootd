@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AppShell } from "@/components/layout";
 import { SurveyWizardForm } from "@/components/SurveyWizardForm";
 import { ApiRequestError, fetchTodaySurvey, upsertTodaySurvey } from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
 import { saveSurveyState } from "@/lib/survey/storage";
 import { DEFAULT_SURVEY_FORM_STATE, type SurveyFormState } from "@/lib/survey/types";
-import { ErrorMessage, LoadingState, PageHeader, SectionCard } from "@/components/ui";
+import { ErrorMessage, LoadingState } from "@/components/ui";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") {
@@ -92,41 +93,39 @@ export default function SurveyPage() {
 
   if (!token) {
     return (
-      <main className="page">
-        <section className="container">
-          <PageHeader title="설문 페이지" subtitle="회원 전용 기능" />
-          <SectionCard>
-            <p className="muted">로그인이 필요한 기능입니다. 로그인 후 설문을 작성해 주세요.</p>
-            <p className="muted">
-              <Link className="textLink" href="/login">
+      <AppShell activePath="/survey">
+        <section className="mx-auto max-w-3xl rounded-3xl border border-surface-container bg-white p-8 text-center shadow-soft">
+          <h1 className="font-headline-md text-headline-md">오늘의 스타일 찾기</h1>
+          <p className="mt-2 text-secondary">로그인이 필요한 기능입니다. 로그인 후 설문을 작성해 주세요.</p>
+          <p className="mt-5 text-sm">
+            <Link className="font-bold text-primary underline" href="/login">
                 로그인
-              </Link>{" "}
-              /{" "}
-              <Link className="textLink" href="/signup">
+            </Link>{" "}
+            /{" "}
+            <Link className="font-bold text-primary underline" href="/signup">
                 회원가입
-              </Link>
-            </p>
-          </SectionCard>
+            </Link>
+          </p>
         </section>
-      </main>
+      </AppShell>
     );
   }
 
   return (
-    <main className="page">
-      <section className="container">
-        <PageHeader title="오늘 추천 설문" subtitle="간단한 질문 5개에 답하면 추천 정확도가 높아집니다." />
-
-        <p className="muted">
-          <Link className="textLink" href="/">
+    <AppShell activePath="/survey">
+      <section className="mx-auto max-w-3xl">
+        <div className="mb-10 text-center">
+          <h1 className="font-display-lg text-display-lg text-primary">오늘의 스타일 찾기</h1>
+          <p className="mt-2 font-body-md text-body-md text-secondary">몇 가지 질문을 통해 완벽한 AI 코디를 추천해 드립니다.</p>
+          <Link className="mt-3 inline-flex text-sm font-bold text-primary underline" href="/">
             메인으로 이동
           </Link>
-        </p>
+        </div>
 
         {loadingInit ? <LoadingState label="설문 초기값을 불러오는 중입니다..." /> : <SurveyWizardForm initialValue={initialForm} loading={submitting} onSubmit={submitSurvey} />}
 
         {error && <ErrorMessage message={error} />}
       </section>
-    </main>
+    </AppShell>
   );
 }

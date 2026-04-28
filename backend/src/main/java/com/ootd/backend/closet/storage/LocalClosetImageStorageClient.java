@@ -39,7 +39,7 @@ public class LocalClosetImageStorageClient implements ClosetImageStorageClient {
         try {
             Files.createDirectories(localRootDir);
             Path destination = localRootDir.resolve(savedFileName);
-            file.transferTo(destination);
+            file.transferTo(Objects.requireNonNull(destination));
             return urlPrefix + savedFileName;
         } catch (IOException ex) {
             throw new ClosetImageStorageException("failed to store closet image file", ex);

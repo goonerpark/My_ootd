@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +33,7 @@ public class SurveyService {
                         .notes(request.notes())
                         .build());
 
-        SurveyAnswer saved = surveyAnswerRepository.save(answer);
+        SurveyAnswer saved = surveyAnswerRepository.save(Objects.requireNonNull(answer));
         return toResponse(saved);
     }
 

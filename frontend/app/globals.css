@@ -1,17 +1,22 @@
-﻿:root {
-  --bg-top: #eff5ff;
-  --bg-bottom: #f8fbff;
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-top: #faf9f6;
+  --bg-bottom: #fcf8f8;
   --surface: #ffffff;
-  --surface-soft: #f5f8ff;
-  --line: #dbe5f2;
-  --line-strong: #c5d6eb;
-  --text: #14243d;
-  --text-muted: #5d708e;
-  --primary: #1e63e9;
-  --primary-strong: #164fc0;
+  --surface-soft: #f6f3f3;
+  --line: #ebe7e7;
+  --line-strong: #c5c6ca;
+  --text: #1c1b1c;
+  --text-muted: #5b5f63;
+  --primary: #181c20;
+  --primary-strong: #2d3135;
   --danger: #c22929;
   --success: #0b8f5a;
-  --shadow: 0 12px 30px rgba(15, 35, 67, 0.08);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -27,8 +32,8 @@ body {
 body {
   min-height: 100vh;
   color: var(--text);
-  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 45%, #ffffff 100%);
-  font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  background: #faf9f6;
+  font-family: "Manrope", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
   line-height: 1.5;
 }
 
@@ -775,3 +780,136 @@ a {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* --- Brand theme override (my_ootd) --- */
+:root {
+  --bg-top: #f5f2ee;
+  --bg-bottom: #eeebe6;
+  --surface: #fffdfa;
+  --surface-soft: #f6f2ed;
+  --line: #e4dbd2;
+  --line-strong: #cfc1b5;
+  --text: #241b17;
+  --text-muted: #665850;
+  --primary: #2e221d;
+  --primary-strong: #1f1714;
+  --shadow: 0 10px 26px rgba(25, 17, 13, 0.08);
+}
+
+body {
+  background: radial-gradient(1400px 500px at 50% -10%, #ffffff 0%, var(--bg-top) 48%, var(--bg-bottom) 100%);
+}
+
+.pageHeader {
+  align-items: center;
+}
+
+.pageHeader h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.pageHeader p {
+  margin-top: 6px;
+}
+
+.appLogoLink {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.appLogoImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.appLogo-md {
+  width: clamp(190px, 28vw, 290px);
+}
+
+.appLogo-sm {
+  width: clamp(150px, 22vw, 210px);
+}
+
+.sectionCard,
+.panel,
+.modalCard {
+  backdrop-filter: blur(2px);
+}
+
+.btnPrimary,
+.primaryBtn,
+.toggle.active {
+  background: linear-gradient(180deg, #3a2c25, #211915);
+  border-color: #211915;
+}
+
+.btnSecondary,
+.ghostBtn,
+.toggle,
+.dateArrowBtn {
+  border-color: var(--line-strong);
+  background: #fffdf9;
+}
+
+@media (max-width: 720px) {
+  .appLogo-md {
+    width: 210px;
+  }
+}
+
+.appLogoFallback {
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: #2e211b;
+  line-height: 1;
+}
+
+.appLogoSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: #1f1714;
+}
+
+/* --- Stitch UI tokens --- */
+:root {
+  --bg-top: #faf9f6;
+  --bg-bottom: #fcf8f8;
+  --surface: #ffffff;
+  --surface-soft: #f6f3f3;
+  --line: #ebe7e7;
+  --line-strong: #c5c6ca;
+  --text: #1c1b1c;
+  --text-muted: #5b5f63;
+  --primary: #181c20;
+  --primary-strong: #2d3135;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+body {
+  background: #faf9f6;
+  font-family: "Manrope", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.soft-shadow {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+}
+

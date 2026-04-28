@@ -18,9 +18,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -32,28 +34,42 @@ public class WeatherQueryService {
     private final WeatherProperties weatherProperties;
     private final List<WeatherProvider> weatherProviders;
     private final PlatformTransactionManager transactionManager;
+    private final ConcurrentHashMap<String, Object> weatherCacheLocks = new ConcurrentHashMap<>();
 
     @Transactional
     public WeatherCache getOrFetchTodayWeatherCache() {
         LocalDate today = LocalDate.now();
         String regionCode = weatherProperties.getOpenweather().getRegionCode();
-        Optional<WeatherCache> existing = weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode);
+        String lockKey = today + ":" + regionCode;
+        Object lock = weatherCacheLocks.computeIfAbsent(lockKey, key -> new Object());
 
-        if (existing.isPresent()) {
-            WeatherCache cached = existing.get();
-            if (isFresh(cached)) {
-                return cached;
+        synchronized (lock) {
+            try {
+                Optional<WeatherCache> existing = weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode);
+                if (existing.isPresent()) {
+                    WeatherCache cached = existing.get();
+                    if (isFresh(cached)) {
+                        return cached;
+                    }
+                    WeatherSnapshot snapshot = fetchFromConfiguredProviderWithFallback();
+                    return updateCacheInNewTransaction(cached.getId(), snapshot);
+                }
+
+                WeatherSnapshot snapshot = fetchFromConfiguredProviderWithFallback();
+                Optional<WeatherCache> doubleChecked = weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode);
+                if (doubleChecked.isPresent()) {
+                    return doubleChecked.get();
+                }
+
+                try {
+                    return saveCacheInNewTransaction(snapshot);
+                } catch (DataIntegrityViolationException ex) {
+                    return findCacheAfterDuplicate(today, regionCode)
+                            .orElseThrow(() -> ex);
+                }
+            } finally {
+                weatherCacheLocks.remove(lockKey, lock);
             }
-            WeatherSnapshot snapshot = fetchFromConfiguredProviderWithFallback();
-            return updateCacheInNewTransaction(cached.getId(), snapshot);
-        }
-
-        WeatherSnapshot snapshot = fetchFromConfiguredProviderWithFallback();
-        try {
-            return saveCacheInNewTransaction(snapshot);
-        } catch (DataIntegrityViolationException ex) {
-            return findCacheInNewTransaction(today, regionCode)
-                    .orElseThrow(() -> ex);
         }
     }
 
@@ -200,7 +216,7 @@ public class WeatherQueryService {
     }
 
     private WeatherCache saveCacheInNewTransaction(WeatherSnapshot snapshot) {
-        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        TransactionTemplate template = new TransactionTemplate(Objects.requireNonNull(transactionManager));
         template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return template.execute(status -> {
             WeatherCache cache = WeatherCache.builder()
@@ -216,22 +232,36 @@ public class WeatherQueryService {
                     .apiResponseJson(snapshot.rawJson())
                     .fetchedAt(snapshot.fetchedAt())
                     .build();
-            return weatherCacheRepository.save(cache);
+            return weatherCacheRepository.save(Objects.requireNonNull(cache));
         });
     }
 
     private Optional<WeatherCache> findCacheInNewTransaction(LocalDate targetDate, String regionCode) {
-        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        TransactionTemplate template = new TransactionTemplate(Objects.requireNonNull(transactionManager));
         template.setReadOnly(true);
         template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return template.execute(status -> weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, regionCode));
     }
 
+    private Optional<WeatherCache> findCacheAfterDuplicate(LocalDate targetDate, String regionCode) {
+        Optional<WeatherCache> found = findCacheInNewTransaction(targetDate, regionCode);
+        if (found.isPresent()) {
+            return found;
+        }
+
+        try {
+            Thread.sleep(25L);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+        }
+        return findCacheInNewTransaction(targetDate, regionCode);
+    }
+
     private WeatherCache updateCacheInNewTransaction(Long cacheId, WeatherSnapshot snapshot) {
-        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        TransactionTemplate template = new TransactionTemplate(Objects.requireNonNull(transactionManager));
         template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return template.execute(status -> {
-            WeatherCache cache = weatherCacheRepository.findById(cacheId)
+            WeatherCache cache = weatherCacheRepository.findById(Objects.requireNonNull(cacheId))
                     .orElseGet(() -> WeatherCache.builder()
                             .targetDate(snapshot.targetDate())
                             .regionCode(snapshot.regionCode())
@@ -257,7 +287,7 @@ public class WeatherQueryService {
                     snapshot.rawJson(),
                     snapshot.fetchedAt()
             );
-            return weatherCacheRepository.save(cache);
+            return weatherCacheRepository.save(Objects.requireNonNull(cache));
         });
     }
 

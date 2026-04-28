@@ -15,6 +15,8 @@ import type {
   TodayWeather,
   UpsertClosetItemPayload,
   UpsertSurveyPayload,
+  UpdateUserProfilePayload,
+  UserProfile,
   WeeklyRecommendationItem
 } from "./types";
 
@@ -102,6 +104,18 @@ async function requestVoid(path: string, options: RequestOptions = {}): Promise<
 
 export function fetchTodayWeather() {
   return request<TodayWeather>("/api/weather/today");
+}
+
+export function fetchMyProfile(token: string) {
+  return request<UserProfile>("/api/users/me/profile", { token });
+}
+
+export function updateMyProfile(token: string, payload: UpdateUserProfilePayload) {
+  return request<UserProfile>("/api/users/me/profile", {
+    method: "PUT",
+    token,
+    body: payload
+  });
 }
 
 export function fetchTodayRecommendation(gender: Gender) {

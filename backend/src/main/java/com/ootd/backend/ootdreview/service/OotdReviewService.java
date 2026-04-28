@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +68,7 @@ public class OotdReviewService {
 
     @Transactional(readOnly = true)
     public OotdReviewResponse getMyReview(Long userId, Long reviewId) {
-        OotdReview review = ootdReviewRepository.findById(reviewId)
+        OotdReview review = ootdReviewRepository.findById(Objects.requireNonNull(reviewId))
                 .orElseThrow(() -> new OotdReviewNotFoundException("OOTD review was not found"));
 
         if (!review.getUserId().equals(userId)) {

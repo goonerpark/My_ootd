@@ -1,0 +1,6 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="520" height="140" viewBox="0 0 520 140" role="img" aria-label="my_ootd logo">
+  <rect width="520" height="140" fill="white"/>
+  <path d="M260 38c0-10 8-18 18-18s18 8 18 18c0 8-5 15-12 18-4 2-6 4-6 8v7" fill="none" stroke="#1f1714" stroke-width="4" stroke-linecap="round"/>
+  <path d="M196 80l82-32 82 32" fill="none" stroke="#1f1714" stroke-width="4" stroke-linecap="round"/>
+  <text x="48" y="116" font-size="64" font-family="Georgia, 'Times New Roman', serif" fill="#1f1714">my_ootd</text>
+</svg>

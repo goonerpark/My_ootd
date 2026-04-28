@@ -7,14 +7,15 @@ import com.ootd.backend.survey.entity.SurveyAnswer;
 import com.ootd.backend.user.entity.User;
 import com.ootd.backend.user.entity.UserProfile;
 import com.ootd.backend.weather.entity.WeatherCache;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -29,34 +30,34 @@ public class GeminiRecommendationService {
 
     public Optional<AiRecommendationResult> recommend(WeatherCache weather, User user, UserProfile profile, SurveyAnswer survey) {
         if (!geminiProperties.isEnabled()) {
-            log.debug("Gemini is disabled. Fallback recommendation will be used.");
+            log.debug("Gemini is disabled. AI recommendation is unavailable.");
             return Optional.empty();
         }
         if (geminiProperties.getApiKey() == null || geminiProperties.getApiKey().isBlank()) {
-            log.warn("GEMINI_API_KEY is empty. Fallback recommendation will be used.");
+            log.warn("GEMINI_API_KEY is empty. AI recommendation is unavailable.");
             return Optional.empty();
         }
 
         try {
             String prompt = promptBuilder.build(weather, user, profile, survey);
+            Map<String, Object> requestBody = buildRequestBody(prompt);
             JsonNode response = restClient.post()
-                    .uri(buildEndpoint())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(buildRequestBody(prompt))
+                    .uri(Objects.requireNonNull(buildEndpoint()))
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .body(Objects.requireNonNull(requestBody))
                     .retrieve()
                     .body(JsonNode.class);
 
             String text = extractText(response);
-            String normalizedText = normalizeForParsing(text);
-            Optional<AiRecommendationResult> parsed = responseParser.parse(normalizedText);
+            Optional<AiRecommendationResult> parsed = responseParser.parse(normalizeForParsing(text));
             if (parsed.isEmpty()) {
                 log.warn("Gemini response parsing failed. Raw text: {}", text);
             } else {
-                log.info("Gemini recommendation generated successfully.");
+                log.info("Gemini recommendation generated successfully for date={}", weather.getTargetDate());
             }
             return parsed;
         } catch (Exception ex) {
-            log.warn("Gemini API call failed. Fallback recommendation will be used.", ex);
+            log.warn("Gemini API call failed. AI recommendation is unavailable.", ex);
             return Optional.empty();
         }
     }
@@ -112,8 +113,9 @@ public class GeminiRecommendationService {
 
         String normalized = text.replace("\r\n", "\n")
                 .replace("\r", "\n")
-                .replace("```", "")
-                .replace("：", ":");
+                .replace("```json", "")
+                .replace("```JSON", "")
+                .replace("```", "");
 
         StringBuilder cleaned = new StringBuilder();
         for (String rawLine : normalized.split("\n")) {

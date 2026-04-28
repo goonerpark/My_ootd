@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,7 +37,7 @@ public class OotdClosetSuggestionService {
 
     @Transactional(readOnly = true)
     public OotdClosetSuggestionsResponse suggestFromReview(Long userId, Long reviewId) {
-        OotdReview review = ootdReviewRepository.findById(reviewId)
+        OotdReview review = ootdReviewRepository.findById(Objects.requireNonNull(reviewId))
                 .orElseThrow(() -> new OotdReviewNotFoundException("OOTD review was not found"));
 
         if (!review.getUserId().equals(userId)) {

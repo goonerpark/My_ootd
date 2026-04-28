@@ -13,7 +13,6 @@ import com.ootd.backend.recommendation.entity.RecommendationType;
 import com.ootd.backend.recommendation.entity.RecommendedClosetItem;
 import com.ootd.backend.recommendation.repository.DailyRecommendationRepository;
 import com.ootd.backend.recommendation.repository.RecommendedClosetItemRepository;
-import com.ootd.backend.survey.entity.OutingPurpose;
 import com.ootd.backend.survey.entity.SurveyAnswer;
 import com.ootd.backend.survey.service.SurveyService;
 import com.ootd.backend.user.entity.Gender;
@@ -29,11 +28,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -49,7 +50,7 @@ public class MemberClosetRecommendationService {
 
     @Transactional
     public TodayClosetRecommendationResponse getTodayClosetRecommendation(Long userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(Objects.requireNonNull(userId))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         WeatherCache weatherCache = weatherQueryService.getOrFetchTodayWeatherCache();
@@ -124,6 +125,9 @@ public class MemberClosetRecommendationService {
     }
 
     private int seasonScore(ClosetSeason season, WeatherCondition condition) {
+        if (season == null) {
+            return 1;
+        }
         if (season == ClosetSeason.ALL) {
             return 3;
         }
@@ -134,28 +138,30 @@ public class MemberClosetRecommendationService {
         if (slot == RecommendationSlot.ACCESSORY || slot == RecommendationSlot.SHOES) {
             return 1;
         }
+        ClosetThickness value = thickness == null ? ClosetThickness.NORMAL : thickness;
+
         if (condition.hot()) {
-            return switch (thickness) {
+            return switch (value) {
                 case THIN -> 6;
                 case NORMAL -> 2;
                 case THICK -> -3;
             };
         }
         if (condition.cold()) {
-            return switch (thickness) {
+            return switch (value) {
                 case THICK -> 6;
                 case NORMAL -> 3;
                 case THIN -> -2;
             };
         }
         if (condition.chilly()) {
-            return switch (thickness) {
+            return switch (value) {
                 case THICK -> 4;
                 case NORMAL -> 5;
                 case THIN -> 0;
             };
         }
-        return switch (thickness) {
+        return switch (value) {
             case THIN -> 3;
             case NORMAL -> 5;
             case THICK -> 1;
@@ -163,13 +169,15 @@ public class MemberClosetRecommendationService {
     }
 
     private int fitScore(ClosetItem item, SurveyAnswer survey) {
-        if (survey == null) {
+        if (survey == null || survey.getOutingPurpose() == null) {
             return 1;
         }
+
+        String fit = item.getFit() == null ? "UNKNOWN" : item.getFit().name();
         return switch (survey.getOutingPurpose()) {
-            case WORK, FORMAL -> ("REGULAR".equals(item.getFit().name()) || "SLIM".equals(item.getFit().name())) ? 4 : 1;
-            case EXERCISE, TRAVEL -> ("OVER".equals(item.getFit().name()) || "REGULAR".equals(item.getFit().name())) ? 4 : 1;
-            case DATE -> ("SLIM".equals(item.getFit().name()) || "REGULAR".equals(item.getFit().name())) ? 3 : 1;
+            case WORK, FORMAL -> ("REGULAR".equals(fit) || "SLIM".equals(fit)) ? 4 : 1;
+            case EXERCISE, TRAVEL -> ("OVER".equals(fit) || "REGULAR".equals(fit)) ? 4 : 1;
+            case DATE -> ("SLIM".equals(fit) || "REGULAR".equals(fit)) ? 3 : 1;
             default -> 2;
         };
     }
@@ -196,7 +204,7 @@ public class MemberClosetRecommendationService {
         if (item.getCreatedAt() == null) {
             return 0;
         }
-        long days = Math.max(0, java.time.Duration.between(item.getCreatedAt(), java.time.LocalDateTime.now()).toDays());
+        long days = Math.max(0, java.time.Duration.between(item.getCreatedAt(), LocalDateTime.now()).toDays());
         if (days <= 14) {
             return 2;
         }
@@ -204,16 +212,6 @@ public class MemberClosetRecommendationService {
             return 1;
         }
         return 0;
-    }
-
-    private RecommendationSlot toSlot(ClosetCategory category) {
-        return switch (category) {
-            case TOP -> RecommendationSlot.TOP;
-            case OUTER -> RecommendationSlot.OUTER;
-            case BOTTOM -> RecommendationSlot.BOTTOM;
-            case SHOES -> RecommendationSlot.SHOES;
-            case ACCESSORY -> RecommendationSlot.ACCESSORY;
-        };
     }
 
     private ClosetCategory toCategory(RecommendationSlot slot) {
@@ -306,13 +304,14 @@ public class MemberClosetRecommendationService {
             reasons.add("일교차 대응을 위해 아우터 우선순위를 높였습니다.");
         }
         if (condition.rainy() && slot == RecommendationSlot.SHOES) {
-            reasons.add("강수 가능성을 반영해 부담이 적은 신발을 우선했습니다.");
+            reasons.add("강수 가능성을 반영해 물/오염에 상대적으로 부담이 적은 신발을 고려했습니다.");
         }
         if (survey != null && survey.getOutingPurpose() != null) {
             reasons.add("외출 목적(" + survey.getOutingPurpose().name() + ")을 반영했습니다.");
         }
-        if (item.getSeason() == condition.currentSeason() || item.getSeason() == ClosetSeason.ALL) {
-            reasons.add("현재 시즌과의 적합도를 고려했습니다.");
+        ClosetSeason season = item.getSeason();
+        if (season == condition.currentSeason() || season == ClosetSeason.ALL) {
+            reasons.add("현재 시즌과의 적합성을 고려했습니다.");
         }
         return String.join(" ", reasons);
     }
@@ -369,7 +368,7 @@ public class MemberClosetRecommendationService {
                         .recommendationSlot(entry.getKey())
                         .build())
                 .toList();
-        recommendedClosetItemRepository.saveAll(mappings);
+        recommendedClosetItemRepository.saveAll(Objects.requireNonNull(mappings));
     }
 
     private List<TodayClosetRecommendedItemResponse> toClosetItemResponses(Map<RecommendationSlot, PickedClosetItem> pickedMap) {
@@ -443,7 +442,7 @@ public class MemberClosetRecommendationService {
                     "얇은 팬츠",
                     "통기성 좋은 신발",
                     "모자 또는 선글라스",
-                    "더운 날씨라 아우터 없이 가벼운 코디를 추천합니다."
+                    "더운 날씨에는 아우터 없이 가벼운 코디를 추천합니다."
             );
         }
         if (condition.cold()) {
@@ -453,7 +452,7 @@ public class MemberClosetRecommendationService {
                     "보온 팬츠",
                     "보온성 있는 신발",
                     "목도리 또는 장갑",
-                    "추운 날씨라 보온 중심 코디를 추천합니다."
+                    "추운 날씨에는 보온 중심 코디를 추천합니다."
             );
         }
         if (condition.chilly()) {
@@ -463,7 +462,7 @@ public class MemberClosetRecommendationService {
                     "코튼 팬츠",
                     "기본 스니커즈",
                     "가벼운 액세서리",
-                    "쌀쌀한 날씨라 아우터를 포함한 코디를 추천합니다."
+                    "선선한 날씨에는 아우터를 포함한 코디를 추천합니다."
             );
         }
         return new FallbackDraft(
@@ -472,7 +471,7 @@ public class MemberClosetRecommendationService {
                 "청바지",
                 "스니커즈",
                 "크로스백",
-                "온화한 날씨에 맞는 기본 코디를 추천합니다."
+                "평온한 날씨에 맞는 기본 코디를 추천합니다."
         );
     }
 

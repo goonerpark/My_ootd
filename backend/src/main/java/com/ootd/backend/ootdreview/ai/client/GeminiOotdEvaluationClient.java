@@ -19,6 +19,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -50,10 +51,11 @@ public class GeminiOotdEvaluationClient implements OotdEvaluationClient {
 
         try {
             String prompt = promptBuilder.build(notes);
+            Map<String, Object> requestBody = buildRequestBody(prompt, imageFiles);
             JsonNode response = restClient.post()
-                    .uri(buildEndpoint())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(buildRequestBody(prompt, imageFiles))
+                    .uri(Objects.requireNonNull(buildEndpoint()))
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .body(Objects.requireNonNull(requestBody))
                     .retrieve()
                     .body(JsonNode.class);
 

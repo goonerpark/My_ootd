@@ -39,7 +39,7 @@ public class LocalOotdImageStorageClient implements OotdImageStorageClient {
         try {
             Files.createDirectories(localRootDir);
             Path destination = localRootDir.resolve(savedFileName);
-            file.transferTo(destination);
+            file.transferTo(Objects.requireNonNull(destination));
             return urlPrefix + savedFileName;
         } catch (IOException ex) {
             throw new OotdImageStorageException("failed to store image file", ex);

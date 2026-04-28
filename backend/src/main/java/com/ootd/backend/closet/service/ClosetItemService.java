@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +43,7 @@ public class ClosetItemService {
                 .memo(request.getMemo())
                 .build();
 
-        ClosetItem saved = closetItemRepository.save(item);
+        ClosetItem saved = closetItemRepository.save(Objects.requireNonNull(item));
         return toResponse(saved);
     }
 
@@ -85,7 +86,7 @@ public class ClosetItemService {
     }
 
     private ClosetItem findOwnedActiveItem(Long userId, Long itemId) {
-        ClosetItem item = closetItemRepository.findById(itemId)
+        ClosetItem item = closetItemRepository.findById(Objects.requireNonNull(itemId))
                 .orElseThrow(() -> new ClosetItemNotFoundException("Closet item was not found"));
 
         if (!item.getUserId().equals(userId)) {

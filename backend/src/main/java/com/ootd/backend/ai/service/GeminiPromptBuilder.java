@@ -2,6 +2,8 @@ package com.ootd.backend.ai.service;
 
 import com.ootd.backend.survey.entity.OutingPurpose;
 import com.ootd.backend.survey.entity.SurveyAnswer;
+import com.ootd.backend.user.entity.BodyType;
+import com.ootd.backend.user.entity.PersonalColor;
 import com.ootd.backend.user.entity.User;
 import com.ootd.backend.user.entity.UserProfile;
 import com.ootd.backend.weather.entity.WeatherCache;
@@ -12,88 +14,78 @@ import java.math.BigDecimal;
 @Component
 public class GeminiPromptBuilder {
 
+    private static final String NOT_COLLECTED = "미수집";
+    private static final String NONE = "없음";
+
     public String build(WeatherCache weather, User user, UserProfile profile, SurveyAnswer survey) {
-        String outingPurpose = survey == null ? "미수집" : outingPurposeLabel(survey.getOutingPurpose());
-        String notes = (survey == null || survey.getNotes() == null || survey.getNotes().isBlank()) ? "없음" : survey.getNotes();
-        String personalColor = profile == null || profile.getPersonalColor() == null ? "UNKNOWN" : profile.getPersonalColor().name();
-        String bodyType = profile == null || profile.getBodyType() == null ? "UNKNOWN" : profile.getBodyType().name();
-
-        String currentTemp = weather.getCurrentTemp() == null ? "없음" : weather.getCurrentTemp() + "°C";
-        String precipitation = weather.getPrecipitationProbability() == null ? "없음" : weather.getPrecipitationProbability() + "%";
-        String humidity = weather.getHumidity() == null ? "없음" : weather.getHumidity() + "%";
-
-        boolean hotWeather = isHotWeather(weather);
-        boolean largeGap = isLargeDailyGap(weather);
-        boolean rainy = isRainy(weather);
-
-        String weatherRuleHint = hotWeather
-                ? "더운 날씨 조건입니다. 아우터는 반드시 '없음'으로 작성하세요."
-                : (largeGap ? "일교차가 큰 날씨 조건입니다. 아우터를 반드시 포함하세요." : "기온에 맞는 현실적인 레이어링을 적용하세요.");
-
-        String rainRuleHint = rainy
-                ? "비/강수 가능성이 있습니다. 신발은 미끄럼/방수/관리 용이성을 고려해 작성하세요."
-                : "강수 영향이 낮습니다. 일반적인 신발 추천이 가능합니다.";
-
         return String.join("\n",
-                "1. 역할 정의",
-                "너는 한국 날씨 기반 스타일 코디네이터다. 각 아이템을 단순 명칭이 아닌 '핏 + 색상 + 아이템명'으로 추천한다.",
+                "너는 한국 날씨 기반 개인 맞춤 스타일 코디네이터다.",
+                "아래 정보를 종합해 오늘 실제로 입기 좋은 현실적인 코디를 추천해라.",
+                "출력 형식은 반드시 아래의 6줄 형식만 사용하고, 마크다운/코드블록/추가 설명은 쓰지 마라.",
                 "",
-                "2. 규칙 정의",
-                "- 반드시 지정된 출력 형식으로만 답변해라.",
-                "- 각 항목은 한 줄로 작성해라.",
-                "- 불필요한 설명, 인사말, 마크다운을 쓰지 마라.",
-                "- 필요 없는 항목은 반드시 '없음'으로 작성해라.",
-                "- 날씨와 기온을 반드시 고려해라.",
-                "- 각 아이템은 가능하면 '핏 + 색상 + 아이템명' 형태로 작성해라.",
-                "- 예: 레귤러핏의 블랙 티셔츠 / 세미 와이드핏의 연청 데님 팬츠",
-                "- 신발과 액세서리는 색상 또는 분위기가 드러나게 작성해라.",
-                "- 퍼스널 컬러 정보가 있으면 색상 선택에 반영해라.",
-                "- 체형 정보가 있으면 핏 선택에 반영해라.",
-                "- 더운 날씨면 아우터는 반드시 '없음'으로 작성해라.",
-                "- 일교차가 크면 아우터를 반드시 포함해라.",
-                "- 비 예보가 있으면 신발 선택에 반영해라.",
-                "- 한국어로만 답변해라.",
-                "- 출력 형식을 절대 변경하지 마라.",
+                "[날씨 정보]",
+                "- 날짜: " + value(weather.getTargetDate()),
+                "- 지역: " + value(weather.getRegionCode()),
+                "- 현재 기온: " + temperature(weather.getCurrentTemp()),
+                "- 최고 기온: " + temperature(weather.getMaxTemp()),
+                "- 최저 기온: " + temperature(weather.getMinTemp()),
+                "- 날씨: " + value(weather.getWeatherMain()),
+                "- 날씨 설명: " + value(weather.getWeatherDescription()),
+                "- 강수확률: " + percentage(weather.getPrecipitationProbability()),
+                "- 습도: " + percentage(weather.getHumidity()),
+                "- 날씨 힌트: " + weatherHint(weather),
                 "",
-                "3. 날씨 정보",
-                "- 날짜: " + weather.getTargetDate(),
-                "- 지역: " + weather.getRegionCode(),
-                "- 현재 기온: " + currentTemp,
-                "- 최고 기온: " + weather.getMaxTemp() + "°C",
-                "- 최저 기온: " + weather.getMinTemp() + "°C",
-                "- 날씨 설명: " + weather.getWeatherDescription(),
-                "- 강수확률: " + precipitation,
-                "- 습도: " + humidity,
-                "- 날씨 규칙 힌트: " + weatherRuleHint,
-                "- 강수 규칙 힌트: " + rainRuleHint,
+                "[사용자 정보]",
+                "- 성별: " + gender(user),
+                "- 닉네임: " + nickname(user),
+                "- 체형: " + bodyType(profile),
+                "- 퍼스널 컬러: " + personalColor(profile),
+                "- 키: " + height(profile),
+                "- 몸무게: " + weight(profile),
+                "- 선호 스타일: " + preferredStyle(profile),
+                "- 추위 민감도: " + NOT_COLLECTED,
                 "",
-                "4. 사용자 정보",
-                "- 성별: " + user.getGender().name(),
-                "- 외출 목적: " + outingPurpose,
-                "- 외출 시간: 미수집(추후 확장)",
-                "- 이동량: 미수집(추후 확장)",
-                "- 스타일 분위기: 미수집(추후 확장)",
-                "- 추위 민감도: 미수집(추후 확장)",
-                "- 퍼스널 컬러: " + personalColor,
-                "- 체형: " + bodyType,
-                "- 추가 메모: " + notes,
+                "[오늘 설문 정보]",
+                "- 외출 목적: " + outingPurposeLabel(survey == null ? null : survey.getOutingPurpose()),
+                "- 외출 시간: " + NOT_COLLECTED,
+                "- 이동량: " + NOT_COLLECTED,
+                "- 원하는 스타일 분위기: " + NOT_COLLECTED,
+                "- 추가 메모: " + notes(survey),
                 "",
-                "5. 출력 형식",
+                "[추천 기준]",
+                "- 사용자의 체형을 보완하거나 장점을 살리는 핏을 추천한다.",
+                "- 퍼스널 컬러 정보가 있으면 어울리는 색상을 우선 추천한다.",
+                "- 키와 몸무게 정보가 있으면 비율이 좋아 보이는 실루엣을 추천한다.",
+                "- 선호 스타일을 우선 반영하되, 날씨와 TPO에 맞지 않으면 현실적인 대안을 제시한다.",
+                "- 날씨와 기온, 강수확률을 반드시 반영한다.",
+                "- 비 가능성이 높으면 신발/아우터 소재에 방수 또는 젖어도 부담이 적은 소재를 반영한다.",
+                "- 일교차가 크면 아우터를 포함한다.",
+                "- 더운 날씨에는 아우터를 \"없음\"으로 작성한다.",
+                "- 각 아이템은 가능하면 핏 + 색상 + 아이템명 형태로 작성한다.",
+                "- 필요 없는 항목은 \"없음\"으로 작성한다.",
+                "- 한국어로만 응답한다.",
+                "",
+                "[출력 형식]",
                 "상의: ...",
                 "아우터: ...",
                 "하의: ...",
                 "신발: ...",
                 "액세서리: ...",
-                "코멘트: ...",
-                "",
-                "출력 예시",
-                "상의: 레귤러핏의 블랙 티셔츠",
-                "아우터: 레귤러핏의 네이비 블루종",
-                "하의: 세미 와이드핏의 연청 데님 팬츠",
-                "신발: 블랙 로퍼",
-                "액세서리: 심플한 실버 팔찌 또는 착용하지 않음",
-                "코멘트: 일교차가 있어 가벼운 아우터를 함께 입는 것이 좋습니다."
+                "코멘트: ..."
         );
+    }
+
+    private String weatherHint(WeatherCache weather) {
+        if (isHotWeather(weather)) {
+            return "더운 날씨이므로 통기성과 가벼운 소재를 우선하고 불필요한 아우터는 제외한다.";
+        }
+        if (isRainy(weather)) {
+            return "비 가능성이 있으므로 젖어도 부담이 적은 신발과 방수 요소를 고려한다.";
+        }
+        if (isLargeDailyGap(weather)) {
+            return "일교차가 큰 날씨이므로 벗고 입기 쉬운 가벼운 아우터를 포함한다.";
+        }
+        return "기온에 맞는 현실적인 레이어링을 적용한다.";
     }
 
     private boolean isHotWeather(WeatherCache weather) {
@@ -113,12 +105,17 @@ public class GeminiPromptBuilder {
     private boolean isRainy(WeatherCache weather) {
         BigDecimal pop = weather.getPrecipitationProbability();
         String desc = weather.getWeatherDescription() == null ? "" : weather.getWeatherDescription().toLowerCase();
+        String main = weather.getWeatherMain() == null ? "" : weather.getWeatherMain().toLowerCase();
         return (pop != null && pop.compareTo(BigDecimal.valueOf(40)) >= 0)
                 || desc.contains("비")
-                || desc.contains("rain");
+                || desc.contains("rain")
+                || main.contains("rain");
     }
 
     private String outingPurposeLabel(OutingPurpose purpose) {
+        if (purpose == null) {
+            return NOT_COLLECTED;
+        }
         return switch (purpose) {
             case WORK -> "출근";
             case SCHOOL -> "등교";
@@ -129,5 +126,71 @@ public class GeminiPromptBuilder {
             case CASUAL -> "가벼운 외출";
             case QUICK_OUTING -> "잠깐 외출";
         };
+    }
+
+    private String gender(User user) {
+        return user == null || user.getGender() == null ? NOT_COLLECTED : user.getGender().name();
+    }
+
+    private String nickname(User user) {
+        return user == null || isBlank(user.getNickname()) ? NOT_COLLECTED : user.getNickname();
+    }
+
+    private String personalColor(UserProfile profile) {
+        if (profile == null || profile.getPersonalColor() == null || profile.getPersonalColor() == PersonalColor.UNKNOWN) {
+            return NOT_COLLECTED;
+        }
+        return switch (profile.getPersonalColor()) {
+            case SPRING_WARM -> "봄 웜톤";
+            case SUMMER_COOL -> "여름 쿨톤";
+            case AUTUMN_WARM -> "가을 웜톤";
+            case WINTER_COOL -> "겨울 쿨톤";
+            case UNKNOWN -> NOT_COLLECTED;
+        };
+    }
+
+    private String bodyType(UserProfile profile) {
+        if (profile == null || profile.getBodyType() == null || profile.getBodyType() == BodyType.UNKNOWN) {
+            return NOT_COLLECTED;
+        }
+        return switch (profile.getBodyType()) {
+            case SLIM -> "슬림";
+            case NORMAL -> "보통";
+            case MUSCULAR -> "근육형";
+            case CHUBBY -> "통통한 체형";
+            case UNKNOWN -> NOT_COLLECTED;
+        };
+    }
+
+    private String height(UserProfile profile) {
+        return profile == null || profile.getHeightCm() == null ? NOT_COLLECTED : profile.getHeightCm() + "cm";
+    }
+
+    private String weight(UserProfile profile) {
+        return profile == null || profile.getWeightKg() == null ? NOT_COLLECTED : profile.getWeightKg() + "kg";
+    }
+
+    private String preferredStyle(UserProfile profile) {
+        return profile == null || isBlank(profile.getPreferredStyle()) ? NOT_COLLECTED : profile.getPreferredStyle();
+    }
+
+    private String notes(SurveyAnswer survey) {
+        return survey == null || isBlank(survey.getNotes()) ? NONE : survey.getNotes();
+    }
+
+    private String temperature(BigDecimal value) {
+        return value == null ? NOT_COLLECTED : value + "°C";
+    }
+
+    private String percentage(BigDecimal value) {
+        return value == null ? NOT_COLLECTED : value + "%";
+    }
+
+    private String value(Object value) {
+        return value == null ? NOT_COLLECTED : String.valueOf(value);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

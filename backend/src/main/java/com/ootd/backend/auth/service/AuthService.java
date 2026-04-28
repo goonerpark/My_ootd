@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -52,16 +54,18 @@ public class AuthService {
                 .isActive(true)
                 .build();
 
-        User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(Objects.requireNonNull(user));
 
         UserProfile profile = UserProfile.builder()
                 .user(savedUser)
                 .personalColor(PersonalColor.UNKNOWN)
                 .bodyType(BodyType.UNKNOWN)
+                .heightCm(null)
+                .weightKg(null)
                 .preferredStyle(null)
                 .profileImageUrl(null)
                 .build();
-        userProfileRepository.save(profile);
+        userProfileRepository.save(Objects.requireNonNull(profile));
 
         return new SignUpResponse(
                 savedUser.getId(),
@@ -96,7 +100,8 @@ public class AuthService {
                 jwtTokenProvider.getAccessTokenExpirationMs(),
                 user.getId(),
                 user.getEmail(),
-                user.getNickname()
+                user.getNickname(),
+                user.getGender()
         );
     }
 }

@@ -65,7 +65,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ootd-frontend
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       - backend
     environment:

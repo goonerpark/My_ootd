@@ -32,6 +32,7 @@ export type LoginResult = {
   userId: number;
   email: string;
   nickname: string;
+  gender: Gender;
 };
 
 export type SignUpRequest = {
@@ -50,6 +51,30 @@ export type SignUpResult = {
   createdAt: string;
 };
 
+
+export type PersonalColor = "SPRING_WARM" | "SUMMER_COOL" | "AUTUMN_WARM" | "WINTER_COOL" | "UNKNOWN";
+export type BodyType = "SLIM" | "NORMAL" | "MUSCULAR" | "CHUBBY" | "UNKNOWN";
+
+export type UserProfile = {
+  userId: number;
+  email: string;
+  nickname: string;
+  gender: Gender;
+  personalColor: PersonalColor;
+  bodyType: BodyType;
+  heightCm: number | null;
+  weightKg: number | null;
+  preferredStyle: string | null;
+  profileImageUrl: string | null;
+};
+
+export type UpdateUserProfilePayload = {
+  personalColor: PersonalColor;
+  bodyType: BodyType;
+  heightCm?: number | null;
+  weightKg?: number | null;
+  preferredStyle?: string | null;
+};
 export type TodayWeather = {
   targetDate: string;
   regionCode: string;

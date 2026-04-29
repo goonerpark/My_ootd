@@ -6,6 +6,7 @@ import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
 import com.ootd.backend.recommendation.entity.DailyRecommendation;
 import com.ootd.backend.recommendation.entity.RecommendationType;
 import com.ootd.backend.recommendation.repository.DailyRecommendationRepository;
+import com.ootd.backend.recommendation.service.dto.CachedRecommendation;
 import com.ootd.backend.recommendation.service.dto.RecommendationDraft;
 import com.ootd.backend.survey.entity.OutingPurpose;
 import com.ootd.backend.survey.entity.SurveyAnswer;
@@ -41,30 +42,50 @@ public class RecommendationService {
     private final UserProfileRepository userProfileRepository;
     private final SurveyService surveyService;
     private final GeminiRecommendationService geminiRecommendationService;
+    private final RecommendationAiCacheService recommendationAiCacheService;
 
     @Transactional
     public TodayRecommendationResponse getTodayRecommendation(Gender gender, Long userId) {
         WeatherCache weatherCache = weatherQueryService.getOrFetchTodayWeatherCache();
-        RecommendationDraft draft = buildDraft(weatherCache, gender);
-        return saveAndBuildResponse(userId, gender, weatherCache, draft, RecommendationType.GUEST_BASIC);
+        CachedRecommendation cached = recommendationAiCacheService.getGuestRecommendation(
+                weatherCache,
+                gender,
+                fallbackGender -> buildDraft(weatherCache, fallbackGender)
+        );
+        return buildCachedResponse(cached.cacheId(), null, gender, weatherCache, cached.draft());
     }
 
     @Transactional
     public TodayRecommendationResponse getTodayMemberRecommendation(Long userId) {
+        return getTodayMemberRecommendation(userId, null);
+    }
+
+    @Transactional
+    public TodayRecommendationResponse getTodayMemberRecommendation(Long userId, Gender requestedGender) {
         User user = userRepository.findById(Objects.requireNonNull(userId))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         WeatherCache weatherCache = weatherQueryService.getOrFetchTodayWeatherCache();
+        Gender effectiveGender = requestedGender == null ? user.getGender() : requestedGender;
+
+        if (effectiveGender != user.getGender()) {
+            CachedRecommendation guestCached = recommendationAiCacheService.getGuestRecommendation(
+                    weatherCache,
+                    effectiveGender,
+                    fallbackGender -> buildDraft(weatherCache, fallbackGender)
+            );
+            return buildCachedResponse(guestCached.cacheId(), null, effectiveGender, weatherCache, guestCached.draft());
+        }
+
         RecommendationDraft baseDraft = buildDraft(weatherCache, user.getGender());
 
         SurveyAnswer todaySurvey = surveyService.findTodaySurveyOrNull(userId);
         UserProfile profile = userProfileRepository.findByUserId(userId).orElse(null);
 
         RecommendationDraft adjusted = applyMemberAdjustments(baseDraft, todaySurvey, profile);
-        RecommendationDraft finalDraft = applyAiRecommendationOrFallback(adjusted, weatherCache, user, profile, todaySurvey);
-        RecommendationType type = todaySurvey == null ? RecommendationType.GUEST_BASIC : RecommendationType.MEMBER_SURVEY;
+        CachedRecommendation cached = recommendationAiCacheService.getUserRecommendation(weatherCache, user, profile, todaySurvey, adjusted);
 
-        return saveAndBuildResponse(userId, user.getGender(), weatherCache, finalDraft, type);
+        return buildCachedResponse(cached.cacheId(), userId, user.getGender(), weatherCache, cached.draft());
     }
 
     private TodayRecommendationResponse saveAndBuildResponse(
@@ -101,6 +122,29 @@ public class RecommendationService {
                 saved.getShoesItem(),
                 saved.getAccessoryItem(),
                 saved.getSummaryComment(),
+                weather
+        );
+    }
+
+    private TodayRecommendationResponse buildCachedResponse(
+            Long recommendationId,
+            Long userId,
+            Gender gender,
+            WeatherCache weatherCache,
+            RecommendationDraft draft
+    ) {
+        TodayWeatherResponse weather = weatherQueryService.toResponse(weatherCache);
+        return new TodayRecommendationResponse(
+                recommendationId,
+                userId,
+                weatherCache.getTargetDate(),
+                gender,
+                draft.topItem(),
+                draft.outerItem(),
+                draft.bottomItem(),
+                draft.shoesItem(),
+                draft.accessoryItem(),
+                draft.summaryComment(),
                 weather
         );
     }

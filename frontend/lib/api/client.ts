@@ -122,8 +122,9 @@ export function fetchTodayRecommendation(gender: Gender) {
   return request<TodayRecommendation>(`/api/recommendations/today?gender=${gender}`);
 }
 
-export function fetchTodayMemberRecommendation(token: string) {
-  return request<TodayRecommendation>("/api/recommendations/member/today", { token });
+export function fetchTodayMemberRecommendation(token: string, gender?: Gender) {
+  const query = gender ? `?gender=${gender}` : "";
+  return request<TodayRecommendation>(`/api/recommendations/member/today${query}`, { token });
 }
 
 export function fetchTodayClosetRecommendation(token: string) {

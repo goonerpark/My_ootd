@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout";
 import { SurveyWizardForm } from "@/components/SurveyWizardForm";
 import { ApiRequestError, fetchTodaySurvey, upsertTodaySurvey } from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
+import { buildLatestFeedbackSurveyNote } from "@/lib/recommendation/feedback";
 import { saveSurveyState } from "@/lib/survey/storage";
 import { DEFAULT_SURVEY_FORM_STATE, type SurveyFormState } from "@/lib/survey/types";
 import { ErrorMessage, LoadingState } from "@/components/ui";
@@ -19,6 +20,13 @@ function toKoreanErrorMessage(message: string) {
     return "서버에서 예기치 못한 오류가 발생했습니다.";
   }
   return message;
+}
+
+function appendFeedbackNote(notes: string, feedbackNote: string) {
+  if (!feedbackNote || notes.includes("[추천 피드백]")) return notes;
+  const trimmedNotes = notes.trim();
+  const nextNotes = trimmedNotes.length > 0 ? `${trimmedNotes}\n${feedbackNote}` : feedbackNote;
+  return nextNotes.slice(0, 255);
 }
 
 export default function SurveyPage() {
@@ -42,6 +50,7 @@ export default function SurveyPage() {
       setLoadingInit(true);
       setError(null);
       try {
+        const feedbackNote = buildLatestFeedbackSurveyNote();
         const survey = await fetchTodaySurvey(localToken).catch((err) => {
           if (err instanceof ApiRequestError && err.status === 404) {
             return null;
@@ -53,7 +62,12 @@ export default function SurveyPage() {
           setInitialForm((prev) => ({
             ...prev,
             outingPurpose: survey.outingPurpose,
-            notes: survey.notes ?? ""
+            notes: appendFeedbackNote(survey.notes ?? "", feedbackNote)
+          }));
+        } else if (feedbackNote) {
+          setInitialForm((prev) => ({
+            ...prev,
+            notes: appendFeedbackNote(prev.notes, feedbackNote)
           }));
         }
       } catch (err) {

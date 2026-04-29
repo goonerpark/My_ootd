@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,16 +18,17 @@ import {
   UserRound
 } from "lucide-react";
 import { GenderSelector } from "@/components/GenderSelector";
-import { ErrorMessage, PrimaryButton, SecondaryButton } from "@/components/ui";
+import { RecommendationFeedbackPanel } from "@/components/RecommendationFeedbackPanel";
 import { AppShell } from "@/components/layout";
+import { ErrorMessage, PrimaryButton, SecondaryButton } from "@/components/ui";
 import {
   fetchTodayClosetRecommendation,
+  fetchTodayMemberRecommendation,
   fetchTodayRecommendation,
   fetchTodayWeather,
   fetchWeeklyRecommendations
 } from "@/lib/api/client";
 import {
-  clearAccessTokenFromStorage,
   getAccessTokenFromStorage,
   getAuthUserProfileFromStorage
 } from "@/lib/auth/token";
@@ -39,6 +41,11 @@ import type {
   WeeklyRecommendationItem
 } from "@/lib/api/types";
 import { getClosetCategoryLabel, getClosetFitLabel } from "@/lib/closet/options";
+import {
+  getLatestRecommendationFeedback,
+  saveRecommendationFeedback,
+  type RecommendationFeedbackValue
+} from "@/lib/recommendation/feedback";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 const PLACEHOLDER_IMAGE = "/mock/base.svg";
@@ -87,37 +94,36 @@ function WeatherSummary({ weather, loading }: { weather: TodayWeather | null; lo
       </div>
 
       <div className="grid grid-cols-2 gap-4 border-t border-surface-container pt-6">
-        <div className="space-y-1">
-          <p className="text-caption-xs uppercase tracking-wider text-on-surface-variant">최저 / 최고</p>
-          <p className="font-bold text-body-md">
-            {formatTemp(weather?.minTemp)} / {formatTemp(weather?.maxTemp)}
-          </p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-caption-xs uppercase tracking-wider text-on-surface-variant">강수 확률</p>
-          <p className="font-bold text-body-md">{weather?.precipitationProbability ?? "-"}%</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-caption-xs uppercase tracking-wider text-on-surface-variant">습도</p>
-          <p className="font-bold text-body-md">{weather?.humidity ?? "-"}%</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-caption-xs uppercase tracking-wider text-on-surface-variant">체감 포인트</p>
-          <p className="font-bold text-body-md text-green-600">{(weather?.precipitationProbability ?? 0) > 50 ? "우산 추천" : "활동하기 좋음"}</p>
-        </div>
+        <WeatherMetric label="최저 / 최고" value={`${formatTemp(weather?.minTemp)} / ${formatTemp(weather?.maxTemp)}`} />
+        <WeatherMetric label="강수 확률" value={`${weather?.precipitationProbability ?? "-"}%`} />
+        <WeatherMetric label="습도" value={`${weather?.humidity ?? "-"}%`} />
+        <WeatherMetric label="추천 힌트" value={(weather?.precipitationProbability ?? 0) > 50 ? "우천 대비" : "활동하기 좋음"} accent />
       </div>
     </article>
+  );
+}
+
+function WeatherMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-caption-xs uppercase tracking-wider text-on-surface-variant">{label}</p>
+      <p className={`font-bold text-body-md ${accent ? "text-green-600" : ""}`}>{value}</p>
+    </div>
   );
 }
 
 function DailyRecommendation({
   recommendation,
   loading,
-  onSurvey
+  onSurvey,
+  selectedFeedback,
+  onFeedback
 }: {
   recommendation: TodayRecommendation | null;
   loading: boolean;
   onSurvey: () => void;
+  selectedFeedback: RecommendationFeedbackValue | null;
+  onFeedback: (value: RecommendationFeedbackValue) => void;
 }) {
   const rows = [
     ["Top", recommendation?.topItem],
@@ -159,8 +165,15 @@ function DailyRecommendation({
             onClick={onSurvey}
           >
             <Sparkles size={18} />
-            이 코디는 어떠신가요? 설문으로 맞춤 추천 받기
+            <span className="flex flex-col leading-tight">
+              <span>이 코디는 어떠신가요?</span>
+              <span>설문으로 맞춤 추천 받기</span>
+            </span>
           </button>
+
+          {!loading && recommendation && (
+            <RecommendationFeedbackPanel selected={selectedFeedback} onSelect={onFeedback} compact />
+          )}
         </div>
       </div>
     </article>
@@ -256,6 +269,10 @@ export default function HomePage() {
   const [closetError, setClosetError] = useState<string | null>(null);
   const [showMemberOnlyModal, setShowMemberOnlyModal] = useState(false);
   const [nickname, setNickname] = useState<string | null>(null);
+  const [authGender, setAuthGender] = useState<Gender | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [recommendationCache, setRecommendationCache] = useState<Partial<Record<Gender, TodayRecommendation>>>({});
+  const [selectedFeedback, setSelectedFeedback] = useState<RecommendationFeedbackValue | null>(null);
 
   const todayLabel = useMemo(
     () =>
@@ -269,9 +286,63 @@ export default function HomePage() {
   );
 
   useEffect(() => {
-    setHasToken(Boolean(getAccessTokenFromStorage()));
-    setNickname(getAuthUserProfileFromStorage()?.nickname ?? null);
+    const token = getAccessTokenFromStorage();
+    const profile = getAuthUserProfileFromStorage();
+    setHasToken(Boolean(token));
+    setNickname(profile?.nickname ?? null);
+    setAuthGender(profile?.gender ?? null);
+    if (profile?.gender) {
+      setGender(profile.gender);
+    }
+    setAuthReady(true);
+    setSelectedFeedback(getLatestRecommendationFeedback()?.value ?? null);
   }, []);
+
+  useEffect(() => {
+    const loadWeather = async () => {
+      setLoadingWeather(true);
+      setError(null);
+      try {
+        setWeather(await fetchTodayWeather());
+      } catch (err) {
+        setError(err instanceof Error ? toKoreanErrorMessage(err.message) : "날씨 정보를 불러오지 못했습니다.");
+      } finally {
+        setLoadingWeather(false);
+      }
+    };
+    loadWeather();
+  }, []);
+
+  useEffect(() => {
+    const loadRecommendation = async () => {
+      if (!authReady) {
+        return;
+      }
+
+      const cached = recommendationCache[gender];
+      if (cached) {
+        setRecommendation(cached);
+        setLoadingRecommendation(false);
+        return;
+      }
+
+      setLoadingRecommendation(true);
+      setError(null);
+      try {
+        const token = getAccessTokenFromStorage();
+        const data = token
+          ? await fetchTodayMemberRecommendation(token, gender)
+          : await fetchTodayRecommendation(gender);
+        setRecommendation(data);
+        setRecommendationCache((prev) => ({ ...prev, [gender]: data }));
+      } catch (err) {
+        setError(err instanceof Error ? toKoreanErrorMessage(err.message) : "추천 정보를 불러오지 못했습니다.");
+      } finally {
+        setLoadingRecommendation(false);
+      }
+    };
+    loadRecommendation();
+  }, [authReady, gender, recommendationCache]);
 
   useEffect(() => {
     const token = getAccessTokenFromStorage();
@@ -282,6 +353,7 @@ export default function HomePage() {
       setDateIndex(0);
       return;
     }
+
     const loadWeekly = async () => {
       setLoadingWeekly(true);
       setError(null);
@@ -290,74 +362,29 @@ export default function HomePage() {
         setWeeklyRecommendations(data);
         setDateIndex(0);
       } catch (err) {
-        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "주간 추천 정보를 불러오지 못했습니다.";
-        setError(message);
+        setError(err instanceof Error ? toKoreanErrorMessage(err.message) : "주간 추천 정보를 불러오지 못했습니다.");
       } finally {
         setLoadingWeekly(false);
       }
     };
-    loadWeekly();
-  }, [hasToken]);
 
-  useEffect(() => {
-    const token = getAccessTokenFromStorage();
-    if (!token) {
-      setClosetRecommendation(null);
-      setClosetError(null);
-      return;
-    }
     const loadClosetRecommendation = async () => {
       setLoadingClosetRecommendation(true);
       setClosetError(null);
       try {
-        const data = await fetchTodayClosetRecommendation(token);
-        setClosetRecommendation(data);
+        setClosetRecommendation(await fetchTodayClosetRecommendation(token));
       } catch (err) {
-        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "옷장 추천 정보를 불러오지 못했습니다.";
-        setClosetError(message);
+        setClosetError(err instanceof Error ? toKoreanErrorMessage(err.message) : "옷장 추천 정보를 불러오지 못했습니다.");
       } finally {
         setLoadingClosetRecommendation(false);
       }
     };
+
+    loadWeekly();
     loadClosetRecommendation();
   }, [hasToken]);
 
-  useEffect(() => {
-    const loadWeather = async () => {
-      setLoadingWeather(true);
-      setError(null);
-      try {
-        const data = await fetchTodayWeather();
-        setWeather(data);
-      } catch (err) {
-        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "날씨 정보를 불러오지 못했습니다.";
-        setError(message);
-      } finally {
-        setLoadingWeather(false);
-      }
-    };
-    loadWeather();
-  }, []);
-
-  useEffect(() => {
-    const loadRecommendation = async () => {
-      setLoadingRecommendation(true);
-      setError(null);
-      try {
-        const data = await fetchTodayRecommendation(gender);
-        setRecommendation(data);
-      } catch (err) {
-        const message = err instanceof Error ? toKoreanErrorMessage(err.message) : "추천 정보를 불러오지 못했습니다.";
-        setError(message);
-      } finally {
-        setLoadingRecommendation(false);
-      }
-    };
-    loadRecommendation();
-  }, [gender]);
-
-  const goToRecommendationFlow = () => router.push(hasToken ? "/survey" : "/login");
-  const selectedWeeklyItem = hasToken ? weeklyRecommendations[dateIndex] : undefined;
+  const selectedWeeklyItem = hasToken && dateIndex > 0 ? weeklyRecommendations[dateIndex] : undefined;
 
   const displayedWeather: TodayWeather | null = useMemo(() => {
     if (!selectedWeeklyItem) return weather;
@@ -378,7 +405,7 @@ export default function HomePage() {
   const displayedRecommendation: TodayRecommendation | null = useMemo(() => {
     if (!selectedWeeklyItem) return recommendation;
     return {
-      recommendationId: 0,
+      recommendationId: dateIndex,
       userId: null,
       targetDate: selectedWeeklyItem.targetDate,
       gender,
@@ -388,100 +415,84 @@ export default function HomePage() {
       shoesItem: selectedWeeklyItem.recommendation.shoes,
       accessoryItem: selectedWeeklyItem.recommendation.accessory,
       summaryComment: selectedWeeklyItem.recommendation.comment,
-      weather: displayedWeather as TodayWeather
+      weather: displayedWeather ?? weather!
     };
-  }, [selectedWeeklyItem, recommendation, gender, displayedWeather]);
+  }, [dateIndex, displayedWeather, gender, recommendation, selectedWeeklyItem, weather]);
 
-  const dateLabel = useMemo(() => {
-    if (!selectedWeeklyItem) return todayLabel;
-    return new Intl.DateTimeFormat("ko-KR", { weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(
-      new Date(selectedWeeklyItem.targetDate)
-    );
-  }, [selectedWeeklyItem, todayLabel]);
+  const goToRecommendationFlow = () => router.push(hasToken ? "/survey" : "/login");
 
-  const moveDate = (direction: "prev" | "next") => {
-    if (!hasToken) {
-      setShowMemberOnlyModal(true);
-      return;
-    }
-    if (weeklyRecommendations.length === 0) return;
-    setDateIndex((prev) => (direction === "prev" ? Math.max(prev - 1, 0) : Math.min(prev + 1, weeklyRecommendations.length - 1)));
+  const saveFeedback = (value: RecommendationFeedbackValue) => {
+    setSelectedFeedback(value);
+    saveRecommendationFeedback(value, {
+      recommendationId: displayedRecommendation?.recommendationId ?? null,
+      targetDate: displayedRecommendation?.targetDate ?? null,
+      source: "dashboard"
+    });
   };
 
   return (
     <AppShell activePath="/">
       <div className="space-y-8">
-        <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-display-lg text-display-lg text-primary">안녕하세요, {nickname ?? "방문자"}님!</h1>
-            <p className="mt-2 flex items-center gap-2 font-body-lg text-body-lg text-on-surface-variant">
-              <CalendarDays size={22} />
-              {dateLabel}
+            <p className="mb-2 flex items-center gap-2 text-on-surface-variant">
+              <CalendarDays size={18} />
+              {selectedWeeklyItem?.targetDate ?? todayLabel}
             </p>
+            <h1 className="font-display-lg text-display-lg text-primary">
+              {nickname ? `안녕하세요, ${nickname}님!` : "오늘의 룩을 준비해볼까요?"}
+            </h1>
+            <p className="mt-2 text-body-lg text-on-surface-variant">날씨와 취향을 반영해 오늘 입기 좋은 옷차림을 추천합니다.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+        </section>
+
+        {hasToken && weeklyRecommendations.length > 0 && (
+          <section className="flex items-center justify-center gap-4">
             <button
-              className="rounded-full border border-outline-variant bg-white p-2 text-primary shadow-sm disabled:opacity-40"
+              className="rounded-full border border-surface-container-high bg-white p-3 disabled:opacity-40"
               type="button"
-              onClick={() => moveDate("prev")}
-              disabled={hasToken && dateIndex === 0}
-              aria-label="이전 날짜"
+              disabled={dateIndex <= 0 || loadingWeekly}
+              onClick={() => setDateIndex((value) => Math.max(0, value - 1))}
             >
               <ArrowLeft size={18} />
             </button>
+            <span className="rounded-full bg-white px-5 py-2 text-sm font-bold text-primary shadow-soft">
+              {dateIndex + 1} / {weeklyRecommendations.length}
+            </span>
             <button
-              className="rounded-full border border-outline-variant bg-white p-2 text-primary shadow-sm disabled:opacity-40"
+              className="rounded-full border border-surface-container-high bg-white p-3 disabled:opacity-40"
               type="button"
-              onClick={() => moveDate("next")}
-              disabled={hasToken && weeklyRecommendations.length > 0 && dateIndex === weeklyRecommendations.length - 1}
-              aria-label="다음 날짜"
+              disabled={dateIndex >= weeklyRecommendations.length - 1 || loadingWeekly}
+              onClick={() => setDateIndex((value) => Math.min(weeklyRecommendations.length - 1, value + 1))}
             >
               <ArrowRight size={18} />
             </button>
-            <span className="rounded-full bg-secondary-container px-4 py-2 text-caption-xs font-semibold text-on-secondary-container">
-              활동하기 좋음
-            </span>
-            <span className="rounded-full bg-tertiary-fixed px-4 py-2 text-caption-xs font-semibold text-on-tertiary-fixed-variant">
-              {(displayedWeather?.precipitationProbability ?? 0) > 50 ? "우산 추천" : "외출 추천"}
-            </span>
-          </div>
-        </section>
+          </section>
+        )}
 
         {error && <ErrorMessage message={error} />}
 
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <WeatherSummary weather={displayedWeather} loading={loadingWeather || loadingWeekly} />
-          <DailyRecommendation recommendation={displayedRecommendation} loading={loadingRecommendation || loadingWeekly} onSurvey={goToRecommendationFlow} />
+          <WeatherSummary weather={displayedWeather} loading={loadingWeather || (dateIndex > 0 && loadingWeekly)} />
+          <DailyRecommendation
+            recommendation={displayedRecommendation}
+            loading={loadingRecommendation || (dateIndex > 0 && loadingWeekly)}
+            onSurvey={goToRecommendationFlow}
+            selectedFeedback={selectedFeedback}
+            onFeedback={saveFeedback}
+          />
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1fr_340px]">
-          <div className="rounded-2xl border border-surface-container bg-white p-6 shadow-soft">
-            <h2 className="mb-3 font-title-sm text-title-sm">성별 기반 기본 추천</h2>
+        {!hasToken && (
+          <section className="rounded-2xl border border-dashed border-outline-variant bg-white p-6 shadow-soft">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-primary">성별 선택</h2>
+              <p className="text-sm text-on-surface-variant">비회원은 성별과 오늘 날씨 기반 기본 추천을 볼 수 있습니다.</p>
+            </div>
             <GenderSelector value={gender} onChange={setGender} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Link className="rounded-2xl bg-secondary-fixed/40 p-5 transition hover:bg-secondary-fixed" href="/closet">
-              <Shirt className="mb-3 text-primary" size={28} />
-              <h3 className="font-bold">내 옷장 관리</h3>
-              <p className="text-caption-xs text-on-surface-variant">새 아이템 등록하기</p>
-            </Link>
-            <Link className="rounded-2xl bg-tertiary-fixed/50 p-5 transition hover:bg-tertiary-fixed" href="/ootd">
-              <Camera className="mb-3 text-primary" size={28} />
-              <h3 className="font-bold">OOTD 평가</h3>
-              <p className="text-caption-xs text-on-surface-variant">오늘 스타일 점수</p>
-            </Link>
-            <Link className="rounded-2xl bg-surface-container-high/60 p-5 transition hover:bg-surface-container-high" href="/survey">
-              <Thermometer className="mb-3 text-primary" size={28} />
-              <h3 className="font-bold">설문 작성</h3>
-              <p className="text-caption-xs text-on-surface-variant">추천 정확도 높이기</p>
-            </Link>
-            <Link className="rounded-2xl bg-white p-5 shadow-soft transition hover:bg-slate-50" href="/mypage">
-              <UserRound className="mb-3 text-primary" size={28} />
-              <h3 className="font-bold">마이페이지</h3>
-              <p className="text-caption-xs text-on-surface-variant">내 활동 확인</p>
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
 
         <ClosetRecommendations
           data={closetRecommendation}
@@ -490,61 +501,56 @@ export default function HomePage() {
           error={closetError}
         />
 
-        <section className="rounded-2xl border border-surface-container bg-white p-6 shadow-soft">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-title-sm text-title-sm">오늘 추천 플로우</h2>
-              <p className="mt-1 text-sm text-on-surface-variant">설문을 작성하면 Gemini 기반 맞춤 추천 결과로 이어집니다.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <PrimaryButton onClick={goToRecommendationFlow}>오늘의 옷 추천</PrimaryButton>
-              {hasToken && (
-                <SecondaryButton
-                  onClick={() => {
-                    clearAccessTokenFromStorage();
-                    setHasToken(false);
-                    setDateIndex(0);
-                  }}
-                >
-                  로그아웃
-                </SecondaryButton>
-              )}
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2 text-sm text-on-surface-variant">
-            <Droplets size={16} />
-            <span>날씨, 기온, 습도, 강수확률과 설문 답변을 함께 분석합니다.</span>
+        <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <Shortcut href="/closet" icon={<Shirt size={28} />} title="내 옷장 관리" subtitle="새 아이템 등록하기" />
+          <Shortcut href="/ootd" icon={<Camera size={28} />} title="OOTD 평가" subtitle="오늘 내 스타일 점수는?" />
+          <Shortcut href="/mypage" icon={<UserRound size={28} />} title="마이페이지" subtitle="내 스타일 정보 관리" />
+        </section>
+
+        <section className="rounded-2xl bg-white p-6 shadow-soft">
+          <h2 className="mb-4 text-xl font-bold text-primary">오늘 추천 흐름</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <FlowItem icon={<Thermometer size={22} />} title="날씨 분석" description="기온, 습도, 강수확률을 확인합니다." />
+            <FlowItem icon={<Droplets size={22} />} title="설문 반영" description="외출 목적과 메모를 추천에 반영합니다." />
+            <FlowItem icon={<Sparkles size={22} />} title="Gemini 추천" description="프로필과 날씨를 함께 분석합니다." />
           </div>
         </section>
       </div>
 
       {showMemberOnlyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="회원 전용 안내">
-          <div className="w-full max-w-md rounded-[28px] border border-surface-container bg-white p-6 shadow-card">
-            <h3 className="text-xl font-bold">회원 전용 기능입니다.</h3>
-            <p className="mt-2 text-sm text-on-surface-variant">로그인하면 날짜별 추천을 확인할 수 있습니다.</p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <PrimaryButton
-                onClick={() => {
-                  setShowMemberOnlyModal(false);
-                  router.push("/login");
-                }}
-              >
-                로그인
-              </PrimaryButton>
-              <SecondaryButton
-                onClick={() => {
-                  setShowMemberOnlyModal(false);
-                  router.push("/signup");
-                }}
-              >
-                회원가입
-              </SecondaryButton>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-6">
+          <div className="max-w-sm rounded-3xl bg-white p-8 shadow-2xl">
+            <h2 className="text-xl font-bold text-primary">회원 전용 기능입니다.</h2>
+            <p className="mt-2 text-sm text-on-surface-variant">로그인하면 주간 추천과 옷장 기반 추천을 사용할 수 있습니다.</p>
+            <div className="mt-6 flex gap-3">
+              <PrimaryButton onClick={() => router.push("/login")}>로그인</PrimaryButton>
               <SecondaryButton onClick={() => setShowMemberOnlyModal(false)}>닫기</SecondaryButton>
             </div>
           </div>
         </div>
       )}
     </AppShell>
+  );
+}
+
+function Shortcut({ href, icon, title, subtitle }: { href: string; icon: ReactNode; title: string; subtitle: string }) {
+  return (
+    <Link className="group flex items-center gap-4 rounded-2xl bg-secondary-fixed/30 p-6 transition-colors hover:bg-secondary-fixed/50" href={href}>
+      <span className="rounded-xl bg-white p-3 text-primary transition-transform group-hover:scale-110">{icon}</span>
+      <span>
+        <span className="block font-bold text-primary">{title}</span>
+        <span className="text-caption-xs text-on-surface-variant">{subtitle}</span>
+      </span>
+    </Link>
+  );
+}
+
+function FlowItem({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+  return (
+    <div className="rounded-2xl bg-surface-container-low p-5">
+      <div className="mb-3 text-primary">{icon}</div>
+      <h3 className="font-bold text-primary">{title}</h3>
+      <p className="mt-1 text-sm text-on-surface-variant">{description}</p>
+    </div>
   );
 }

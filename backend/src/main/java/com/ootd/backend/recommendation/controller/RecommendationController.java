@@ -42,12 +42,13 @@ public class RecommendationController {
 
     @GetMapping("/member/today")
     public ResponseEntity<ApiResponse<TodayRecommendationResponse>> getTodayMemberRecommendation(
-            @AuthenticationPrincipal CustomUserDetails userDetails
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Gender gender
     ) {
         if (userDetails == null || userDetails.getUserId() == null) {
             throw new AuthenticationFailedException("Authentication is required");
         }
-        return ResponseEntity.ok(ApiResponse.ok(recommendationService.getTodayMemberRecommendation(userDetails.getUserId())));
+        return ResponseEntity.ok(ApiResponse.ok(recommendationService.getTodayMemberRecommendation(userDetails.getUserId(), gender)));
     }
 
     @GetMapping("/weekly")

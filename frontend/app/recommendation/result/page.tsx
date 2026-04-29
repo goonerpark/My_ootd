@@ -6,9 +6,15 @@ import { AppShell } from "@/components/layout";
 import { OutfitCard } from "@/components/stitch/OutfitCard";
 import { StyleTag } from "@/components/stitch/StyleTag";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { RecommendationFeedbackPanel } from "@/components/RecommendationFeedbackPanel";
 import { ErrorMessage } from "@/components/ui";
 import { fetchTodayMemberRecommendation } from "@/lib/api/client";
 import { getAccessTokenFromStorage } from "@/lib/auth/token";
+import {
+  getLatestRecommendationFeedback,
+  saveRecommendationFeedback,
+  type RecommendationFeedbackValue
+} from "@/lib/recommendation/feedback";
 import { mockOutfitCards } from "@/lib/mock/stitch";
 import { buildRecommendationPrompt } from "@/lib/survey/prompt";
 import { getRecommendationError, getSavedRecommendationResult, getSavedSurveyState } from "@/lib/survey/storage";
@@ -24,6 +30,7 @@ export default function RecommendationResultPage() {
   const [recommendation, setRecommendation] = useState<TodayRecommendation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFeedback, setSelectedFeedback] = useState<RecommendationFeedbackValue | null>(null);
 
   const promptPreview = useMemo(() => {
     const state = getSavedSurveyState() ?? DEFAULT_SURVEY_FORM_STATE;
@@ -31,6 +38,8 @@ export default function RecommendationResultPage() {
   }, []);
 
   useEffect(() => {
+    setSelectedFeedback(getLatestRecommendationFeedback()?.value ?? null);
+
     const cachedResult = getSavedRecommendationResult();
     const cachedError = getRecommendationError();
 
@@ -63,6 +72,15 @@ export default function RecommendationResultPage() {
     load();
   }, []);
 
+  const saveFeedback = (value: RecommendationFeedbackValue) => {
+    setSelectedFeedback(value);
+    saveRecommendationFeedback(value, {
+      recommendationId: recommendation?.recommendationId ?? null,
+      targetDate: recommendation?.targetDate ?? null,
+      source: "result"
+    });
+  };
+
   return (
     <AppShell activePath="/recommendation/result">
       <section className="mb-6">
@@ -85,6 +103,12 @@ export default function RecommendationResultPage() {
       <div className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-soft">
         <RecommendationCard data={recommendation} loading={loading} />
       </div>
+
+      {!loading && recommendation && (
+        <div className="mb-6">
+          <RecommendationFeedbackPanel selected={selectedFeedback} onSelect={saveFeedback} />
+        </div>
+      )}
 
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">Explore Similar Vibes</h2>

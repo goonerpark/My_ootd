@@ -102,6 +102,19 @@ export type TodayRecommendation = {
   weather: TodayWeather;
 };
 
+export type RecommendationHistoryItem = {
+  recommendationId: number;
+  targetDate: string;
+  gender: Gender;
+  topItem: string | null;
+  outerItem: string | null;
+  bottomItem: string | null;
+  shoesItem: string | null;
+  accessoryItem: string | null;
+  summaryComment: string | null;
+  createdAt: string;
+};
+
 export type TodaySurvey = {
   surveyId: number;
   userId: number;

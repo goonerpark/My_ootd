@@ -8,6 +8,7 @@ import type {
   LoginResult,
   OotdClosetSuggestionsResult,
   OotdReview,
+  RecommendationHistoryItem,
   SignUpRequest,
   SignUpResult,
   TodayRecommendation,
@@ -133,6 +134,10 @@ export function fetchTodayClosetRecommendation(token: string) {
 
 export function fetchWeeklyRecommendations(token: string) {
   return request<WeeklyRecommendationItem[]>("/api/recommendations/weekly", { token });
+}
+
+export function fetchRecommendationHistory(token: string) {
+  return request<RecommendationHistoryItem[]>("/api/recommendations/history", { token });
 }
 
 export function fetchTodaySurvey(token: string) {

@@ -1,6 +1,7 @@
 package com.ootd.backend.recommendation.controller;
 
 import com.ootd.backend.common.api.ApiResponse;
+import com.ootd.backend.recommendation.dto.RecommendationHistoryResponse;
 import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
 import com.ootd.backend.recommendation.dto.TodayClosetRecommendationResponse;
 import com.ootd.backend.recommendation.dto.WeeklyRecommendationResponse;
@@ -59,6 +60,16 @@ public class RecommendationController {
             throw new AuthenticationFailedException("Authentication is required");
         }
         return ResponseEntity.ok(ApiResponse.ok(weeklyRecommendationService.getWeeklyRecommendations(userDetails.getUserId())));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<RecommendationHistoryResponse>>> getRecommendationHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        if (userDetails == null || userDetails.getUserId() == null) {
+            throw new AuthenticationFailedException("Authentication is required");
+        }
+        return ResponseEntity.ok(ApiResponse.ok(recommendationService.getRecommendationHistory(userDetails.getUserId())));
     }
 
     @GetMapping("/today/closet")

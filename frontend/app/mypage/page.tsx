@@ -6,8 +6,8 @@ import { Camera, CheckCircle2, Grid2X2, History, PlusCircle, Save, Settings, Shi
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/layout";
 import { ErrorMessage, LoadingState } from "@/components/ui";
-import { ApiRequestError, fetchClosetItems, fetchMyProfile, fetchOotdReviews, fetchTodaySurvey, updateMyProfile } from "@/lib/api/client";
-import type { BodyType, ClosetItem, OotdReview, PersonalColor, TodaySurvey, UserProfile } from "@/lib/api/types";
+import { ApiRequestError, fetchClosetItems, fetchMyProfile, fetchOotdReviews, fetchRecommendationHistory, fetchTodaySurvey, updateMyProfile } from "@/lib/api/client";
+import type { BodyType, ClosetItem, OotdReview, PersonalColor, RecommendationHistoryItem, TodaySurvey, UserProfile } from "@/lib/api/types";
 import { getAccessTokenFromStorage, setAuthUserProfileToStorage } from "@/lib/auth/token";
 import { getClosetCategoryLabel, getClosetFitLabel } from "@/lib/closet/options";
 
@@ -95,6 +95,7 @@ export default function MyPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recentClosetItems, setRecentClosetItems] = useState<ClosetItem[]>([]);
   const [recentOotdReviews, setRecentOotdReviews] = useState<OotdReview[]>([]);
+  const [recommendationHistory, setRecommendationHistory] = useState<RecommendationHistoryItem[]>([]);
   const [todaySurvey, setTodaySurvey] = useState<TodaySurvey | null>(null);
   const [surveyStatus, setSurveyStatus] = useState<"done" | "none" | "error">("none");
   const [personalColor, setPersonalColor] = useState<PersonalColor>("UNKNOWN");
@@ -130,6 +131,10 @@ export default function MyPage() {
 
         if (closetResult.status === "fulfilled") setRecentClosetItems(closetResult.value.slice(0, 3));
         if (reviewResult.status === "fulfilled") setRecentOotdReviews(reviewResult.value.slice(0, 3));
+
+        fetchRecommendationHistory(localToken)
+          .then((history) => setRecommendationHistory(history.slice(0, 5)))
+          .catch(() => setRecommendationHistory([]));
 
         if (surveyResult.status === "fulfilled") {
           setTodaySurvey(surveyResult.value);
@@ -305,6 +310,8 @@ export default function MyPage() {
           <RecentClosetSection items={recentClosetItems} />
         </div>
 
+        <RecommendationHistorySection items={recommendationHistory} />
+
         {surveyStatus === "done" && todaySurvey && (
           <section className="rounded-3xl border border-surface-container bg-white p-6 shadow-soft">
             <h2 className="mb-2 font-title-sm text-title-sm">오늘 설문 상태</h2>
@@ -384,5 +391,60 @@ function RecentClosetSection({ items }: { items: ClosetItem[] }) {
         <p className="font-label-sm text-label-sm text-on-surface-variant">새로운 옷 등록하기</p>
       </Link>
     </section>
+  );
+}
+
+function RecommendationHistorySection({ items }: { items: RecommendationHistoryItem[] }) {
+  return (
+    <section className="rounded-3xl border border-surface-container bg-white p-6 shadow-soft">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="font-title-sm text-title-sm text-primary">추천 히스토리</h2>
+          <p className="mt-1 text-sm text-on-surface-variant">오늘 받은 AI 코디가 날짜별로 저장됩니다.</p>
+        </div>
+        <Link className="font-label-sm text-label-sm text-on-surface-variant hover:text-primary" href="/">
+          오늘 추천 보기
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-6 text-secondary">
+          아직 저장된 추천이 없습니다. 메인에서 오늘의 AI 추천을 받으면 여기에 기록됩니다.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {items.map((item) => (
+            <article className="rounded-2xl border border-surface-container bg-surface-container-low p-5" key={item.recommendationId}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="font-bold text-primary">{item.targetDate}</p>
+                <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-on-surface-variant">
+                  {item.gender === "MALE" ? "남성" : "여성"}
+                </span>
+              </div>
+              <div className="space-y-2 text-sm">
+                <HistoryRow label="Top" value={item.topItem} />
+                <HistoryRow label="Outer" value={item.outerItem} />
+                <HistoryRow label="Bottom" value={item.bottomItem} />
+                <HistoryRow label="Shoes" value={item.shoesItem} />
+                <HistoryRow label="Accessory" value={item.accessoryItem} />
+              </div>
+              {item.summaryComment && (
+                <p className="mt-4 rounded-xl bg-white p-3 text-caption-xs leading-relaxed text-on-surface-variant">
+                  {item.summaryComment}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HistoryRow({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-on-surface-variant">{label}</span>
+      <span className="max-w-[70%] text-right font-bold text-primary">{value || "-"}</span>
+    </div>
   );
 }

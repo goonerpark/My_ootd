@@ -211,7 +211,17 @@ function ClosetRecommendations({
         </div>
       )}
       {hasToken && loading && <div className="rounded-2xl bg-white p-6 shadow-soft">옷장 추천 정보를 불러오는 중입니다...</div>}
-      {hasToken && !loading && error && <ErrorMessage message={error} />}
+      {hasToken && !loading && error && (
+        <div className="rounded-2xl border border-dashed border-outline-variant bg-white p-6 text-on-surface-variant shadow-soft">
+          <p className="font-bold text-primary">아직 옷장 기반 추천을 준비하지 못했어요.</p>
+          <p className="mt-2 text-sm">
+            옷장 아이템이 부족하거나 추천 조건이 맞지 않으면 이 영역은 자연스럽게 비워둘게요. 옷을 몇 개 등록하면 날씨에 맞는 내 옷장 추천을 볼 수 있습니다.
+          </p>
+          <Link className="mt-4 inline-flex rounded-full bg-primary px-4 py-2 text-sm font-bold text-white" href="/closet">
+            옷장 등록하러 가기
+          </Link>
+        </div>
+      )}
       {hasToken && !loading && !error && data && cards.length === 0 && (
         <div className="rounded-2xl bg-white p-6 text-on-surface-variant shadow-soft">
           현재 조건에 맞는 옷장 아이템이 없어 기본 추천을 제공합니다. {data.summaryComment}

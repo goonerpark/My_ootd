@@ -2,6 +2,7 @@ package com.ootd.backend.recommendation.service;
 
 import com.ootd.backend.ai.dto.AiRecommendationResult;
 import com.ootd.backend.ai.service.GeminiRecommendationService;
+import com.ootd.backend.recommendation.dto.RecommendationHistoryResponse;
 import com.ootd.backend.recommendation.dto.TodayRecommendationResponse;
 import com.ootd.backend.recommendation.entity.DailyRecommendation;
 import com.ootd.backend.recommendation.entity.RecommendationType;
@@ -85,7 +86,20 @@ public class RecommendationService {
         RecommendationDraft adjusted = applyMemberAdjustments(baseDraft, todaySurvey, profile);
         CachedRecommendation cached = recommendationAiCacheService.getUserRecommendation(weatherCache, user, profile, todaySurvey, adjusted);
 
-        return buildCachedResponse(cached.cacheId(), userId, user.getGender(), weatherCache, cached.draft());
+        DailyRecommendation history = upsertDailyRecommendation(userId, user.getGender(), weatherCache, cached.draft(), RecommendationType.MEMBER_SURVEY);
+        return buildCachedResponse(history.getId(), userId, user.getGender(), weatherCache, cached.draft());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecommendationHistoryResponse> getRecommendationHistory(Long userId) {
+        return dailyRecommendationRepository
+                .findTop10ByUserIdAndRecommendationTypeOrderByTargetDateDescCreatedAtDesc(
+                        Objects.requireNonNull(userId),
+                        RecommendationType.MEMBER_SURVEY
+                )
+                .stream()
+                .map(this::toHistoryResponse)
+                .toList();
     }
 
     private TodayRecommendationResponse saveAndBuildResponse(
@@ -123,6 +137,58 @@ public class RecommendationService {
                 saved.getAccessoryItem(),
                 saved.getSummaryComment(),
                 weather
+        );
+    }
+
+    private DailyRecommendation upsertDailyRecommendation(
+            Long userId,
+            Gender gender,
+            WeatherCache weatherCache,
+            RecommendationDraft draft,
+            RecommendationType type
+    ) {
+        DailyRecommendation recommendation = dailyRecommendationRepository
+                .findByUserIdAndTargetDateAndRecommendationType(userId, weatherCache.getTargetDate(), type)
+                .orElseGet(() -> DailyRecommendation.builder()
+                        .userId(userId)
+                        .targetDate(weatherCache.getTargetDate())
+                        .gender(gender)
+                        .weatherCacheId(weatherCache.getId())
+                        .recommendationType(type)
+                        .topItem(draft.topItem())
+                        .outerItem(draft.outerItem())
+                        .bottomItem(draft.bottomItem())
+                        .shoesItem(draft.shoesItem())
+                        .accessoryItem(draft.accessoryItem())
+                        .summaryComment(draft.summaryComment())
+                        .build());
+
+        recommendation.update(
+                weatherCache.getId(),
+                gender,
+                type,
+                draft.topItem(),
+                draft.outerItem(),
+                draft.bottomItem(),
+                draft.shoesItem(),
+                draft.accessoryItem(),
+                draft.summaryComment()
+        );
+        return dailyRecommendationRepository.save(Objects.requireNonNull(recommendation));
+    }
+
+    private RecommendationHistoryResponse toHistoryResponse(DailyRecommendation recommendation) {
+        return new RecommendationHistoryResponse(
+                recommendation.getId(),
+                recommendation.getTargetDate(),
+                recommendation.getGender(),
+                recommendation.getTopItem(),
+                recommendation.getOuterItem(),
+                recommendation.getBottomItem(),
+                recommendation.getShoesItem(),
+                recommendation.getAccessoryItem(),
+                recommendation.getSummaryComment(),
+                recommendation.getCreatedAt()
         );
     }
 

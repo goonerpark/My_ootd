@@ -34,7 +34,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class WeeklyRecommendationService {
 
-    private static final int WEEKLY_RECOMMENDATION_DAYS = 7;
+    private static final int WEEKLY_RECOMMENDATION_DAYS = 8;
 
     private final WeatherQueryService weatherQueryService;
     private final UserRepository userRepository;

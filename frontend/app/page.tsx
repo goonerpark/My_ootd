@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Camera, CloudSun, Heart, Shirt, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, CloudSun, Heart, Shirt, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout';
-import { fetchOotdPosts, fetchTodayMemberRecommendation, fetchTodayRecommendation, fetchTodayWeather } from '@/lib/api/client';
-import type { Gender, OotdPostSummary, TodayRecommendation, TodayWeather } from '@/lib/api/types';
+import { fetchOotdPosts, fetchTodayMemberRecommendation, fetchTodayRecommendation, fetchTodayWeather, fetchWeeklyRecommendations } from '@/lib/api/client';
+import type { Gender, OotdPostSummary, TodayRecommendation, TodayWeather, WeeklyRecommendationItem } from '@/lib/api/types';
 import { getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
 import { lookCategoryLabels } from '@/lib/community/categories';
 
@@ -13,12 +13,47 @@ function temp(value?: number | null) {
   return typeof value === 'number' ? `${Math.round(value)}°` : '-';
 }
 
+function formatDateLabel(date: string) {
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(parsed);
+}
+
 export default function HomePage() {
   const [weather, setWeather] = useState<TodayWeather | null>(null);
   const [recommendation, setRecommendation] = useState<TodayRecommendation | null>(null);
+  const [weeklyRecommendations, setWeeklyRecommendations] = useState<WeeklyRecommendationItem[]>([]);
+  const [selectedRecommendationIndex, setSelectedRecommendationIndex] = useState(0);
   const [posts, setPosts] = useState<OotdPostSummary[]>([]);
   const [nickname, setNickname] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authNoticeOpen, setAuthNoticeOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const selectedWeeklyRecommendation = weeklyRecommendations[selectedRecommendationIndex] ?? null;
+  const displayRecommendation = selectedWeeklyRecommendation
+    ? {
+        targetDate: selectedWeeklyRecommendation.targetDate,
+        weather: selectedWeeklyRecommendation.weather,
+        top: selectedWeeklyRecommendation.recommendation.top,
+        outer: selectedWeeklyRecommendation.recommendation.outer,
+        bottom: selectedWeeklyRecommendation.recommendation.bottom,
+        shoes: selectedWeeklyRecommendation.recommendation.shoes,
+        accessory: selectedWeeklyRecommendation.recommendation.accessory,
+        comment: selectedWeeklyRecommendation.recommendation.comment
+      }
+    : recommendation
+      ? {
+          targetDate: recommendation.targetDate,
+          weather: recommendation.weather,
+          top: recommendation.topItem,
+          outer: recommendation.outerItem,
+          bottom: recommendation.bottomItem,
+          shoes: recommendation.shoesItem,
+          accessory: recommendation.accessoryItem,
+          comment: recommendation.summaryComment
+        }
+      : null;
 
   useEffect(() => {
     const load = async () => {
@@ -26,15 +61,19 @@ export default function HomePage() {
       const profile = getAuthUserProfileFromStorage();
       const gender: Gender = profile?.gender ?? 'MALE';
       setNickname(profile?.nickname ?? null);
+      setIsLoggedIn(Boolean(token));
       setLoading(true);
       try {
-        const [weatherData, recommendationData, postPage] = await Promise.all([
+        const [weatherData, recommendationData, weeklyData, postPage] = await Promise.all([
           fetchTodayWeather().catch(() => null),
           token ? fetchTodayMemberRecommendation(token, gender).catch(() => null) : fetchTodayRecommendation(gender).catch(() => null),
+          token ? fetchWeeklyRecommendations(token).catch(() => []) : Promise.resolve([]),
           fetchOotdPosts({ size: 3 }).catch(() => null)
         ]);
         setWeather(weatherData);
         setRecommendation(recommendationData);
+        setWeeklyRecommendations((weeklyData ?? []).slice(0, 8));
+        setSelectedRecommendationIndex(0);
         setPosts(postPage?.content ?? []);
       } finally {
         setLoading(false);
@@ -42,6 +81,22 @@ export default function HomePage() {
     };
     load();
   }, []);
+
+  const moveRecommendationDate = (direction: -1 | 1) => {
+    if (!isLoggedIn) {
+      window.alert('날짜별 AI 추천은 로그인이 필요한 기능입니다.');
+      setAuthNoticeOpen(true);
+      return;
+    }
+
+    if (weeklyRecommendations.length === 0) return;
+    setSelectedRecommendationIndex((current) => {
+      const next = current + direction;
+      if (next < 0) return 0;
+      if (next >= weeklyRecommendations.length) return weeklyRecommendations.length - 1;
+      return next;
+    });
+  };
 
   return (
     <AppShell activePath="/" withFooter>
@@ -71,15 +126,73 @@ export default function HomePage() {
               </div>
             </article>
 
-            <article className="flex flex-col gap-6 rounded-xl bg-primary-container p-8 text-on-primary-container">
-              <div>
-                <span className="mb-4 inline-block rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">AI 추천 코디</span>
-                <h2 className="mb-2 font-headline text-2xl font-semibold">{recommendation?.topItem ?? '오늘의 추천을 준비 중입니다'}</h2>
-                <p className="text-sm leading-relaxed opacity-80">{recommendation?.summaryComment ?? '날씨와 성별 정보를 바탕으로 데일리 룩을 추천합니다.'}</p>
+            <article className="flex flex-col gap-5 rounded-xl bg-primary-container p-6 text-on-primary-container shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => moveRecommendationDate(-1)}
+                  disabled={isLoggedIn && selectedRecommendationIndex === 0}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="이전 날짜 추천"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="text-center">
+                  <span className="mb-2 inline-block rounded-full bg-white/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">날씨별 AI 추천 코디</span>
+                  <p className="font-headline text-xl font-semibold">
+                    {displayRecommendation ? formatDateLabel(displayRecommendation.targetDate) : '추천 준비 중'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => moveRecommendationDate(1)}
+                  disabled={isLoggedIn && selectedRecommendationIndex >= weeklyRecommendations.length - 1}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 transition hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="다음 날짜 추천"
+                >
+                  <ArrowRight size={18} />
+                </button>
               </div>
-              <Link href="/survey" className="flex items-center justify-between rounded-lg bg-white/80 p-4 font-bold text-primary backdrop-blur-md">
-                설문으로 맞춤 추천 받기 <ArrowRight size={18} />
-              </Link>
+
+              {displayRecommendation ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl bg-white/15 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider opacity-75">Weather</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {displayRecommendation.weather.weatherDescription} · {temp(displayRecommendation.weather.minTemp)} / {temp(displayRecommendation.weather.maxTemp)}
+                    </p>
+                    <p className="mt-1 text-xs opacity-75">강수확률 {displayRecommendation.weather.precipitationProbability ?? '-'}% · 습도 {displayRecommendation.weather.humidity ?? '-'}%</p>
+                  </div>
+                  <div className="grid gap-2 text-sm">
+                    <RecommendationLine label="Top" value={displayRecommendation.top} />
+                    <RecommendationLine label="Outer" value={displayRecommendation.outer} />
+                    <RecommendationLine label="Bottom" value={displayRecommendation.bottom} />
+                    <RecommendationLine label="Shoes" value={displayRecommendation.shoes} />
+                    <RecommendationLine label="Acc" value={displayRecommendation.accessory} />
+                  </div>
+                  <p className="rounded-2xl bg-white/15 p-4 text-sm leading-relaxed">{displayRecommendation.comment ?? '날씨와 취향을 반영해 추천한 코디입니다.'}</p>
+                </div>
+              ) : (
+                <div>
+                  <h2 className="mb-2 font-headline text-2xl font-semibold">추천을 준비 중입니다</h2>
+                  <p className="text-sm leading-relaxed opacity-80">날씨와 사용자 정보를 바탕으로 날짜별 데일리 룩을 불러오고 있습니다.</p>
+                </div>
+              )}
+
+              {authNoticeOpen ? (
+                <div className="rounded-2xl bg-white p-4 text-primary shadow-sm">
+                  <p className="text-sm font-bold">로그인하면 오늘부터 +7일까지 날짜별 AI 추천을 볼 수 있어요.</p>
+                  <div className="mt-3 flex gap-2">
+                    <Link href="/login" className="flex-1 rounded-full bg-primary px-4 py-2 text-center text-sm font-bold text-white">로그인</Link>
+                    <Link href="/signup" className="flex-1 rounded-full border border-primary px-4 py-2 text-center text-sm font-bold text-primary">회원가입</Link>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-between text-xs font-semibold opacity-75">
+                <span>{isLoggedIn ? `${selectedRecommendationIndex + 1} / ${Math.max(weeklyRecommendations.length, 1)}` : '로그인 시 날짜 이동 가능'}</span>
+                <span>최대 +7일</span>
+              </div>
             </article>
           </section>
 
@@ -130,6 +243,15 @@ export default function HomePage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function RecommendationLine({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-xl bg-white/10 px-3 py-2">
+      <span className="text-xs font-bold uppercase tracking-wider opacity-70">{label}</span>
+      <span className="text-right font-bold">{value || '없음'}</span>
+    </div>
   );
 }
 

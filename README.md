@@ -1,5 +1,3 @@
-@@ -1 +1,175 @@
-# My_ootd
 # MYOOTD 👕
 날씨 + 사용자 취향 + 개인 옷장을 기반으로  
 오늘/주간 OOTD를 추천하는 개인화 패션 추천 서비스입니다.
@@ -70,7 +68,7 @@ MYOOTD는 날씨, 설문, 사용자 옷장 데이터를 기반으로
 ---
 
 ## 📂 Project Structure
-'''
+```
 ootd/
 ├─ backend/ # Spring Boot
 │ ├─ src/main/java/...
@@ -89,7 +87,7 @@ ootd/
 ├─ docker-compose.yml
 ├─ .env.example # docker-compose용
 └─ README.md
-'''
+```
 
 
 ---
@@ -130,35 +128,46 @@ ootd/
 ```bash
 cd backend
 ./gradlew bootRun
+```
 #### Frontend
+```
 cd frontend
 npm install
 npm run dev
-
+```
 접속:
+```
 Frontend: http://localhost:3000
 Backend: http://localhost:8080
+```
 
 🐳 Docker 실행
 # 환경변수 복사
+```
 cp .env.example .env
-
+```
 # 실행
+```
 docker compose up -d --build
-
+```
 # 상태 확인
+```
 docker compose ps
-
+```
 # 종료
+```
 docker compose down
+```
 
 🌐 CORS 설정
+```
 CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
 
 복수:
-
+```
 CORS_ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
-
+```
 ⚠️ Security
 .env, API Key, DB 비밀번호는 절대 커밋 금지
 운영 환경에서는:
@@ -174,6 +183,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
 이미지 저장소 (S3) 이전
 UI/UX 개선
 성능 최적화 및 캐싱 전략 강화
+
 📌 Notes
 이미지 저장은 현재 로컬 기반
 향후 클라우드 스토리지로 확장 예정

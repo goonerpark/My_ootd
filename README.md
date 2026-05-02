@@ -70,6 +70,7 @@ MYOOTD는 날씨, 설문, 사용자 옷장 데이터를 기반으로
 ---
 
 ## 📂 Project Structure
+'''
 ootd/
 ├─ backend/ # Spring Boot
 │ ├─ src/main/java/...
@@ -88,6 +89,7 @@ ootd/
 ├─ docker-compose.yml
 ├─ .env.example # docker-compose용
 └─ README.md
+'''
 
 
 ---

@@ -2,6 +2,7 @@ package com.ootd.backend.weather.provider;
 
 import com.ootd.backend.weather.config.WeatherProperties;
 import com.ootd.backend.weather.service.dto.WeatherSnapshot;
+import com.ootd.backend.weather.service.dto.WeatherLocation;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -27,10 +28,15 @@ public class MockWeatherProvider implements WeatherProvider {
 
     @Override
     public WeatherSnapshot fetchToday() {
+        return fetchToday(defaultLocation());
+    }
+
+    @Override
+    public WeatherSnapshot fetchToday(WeatherLocation location) {
         LocalDate today = LocalDate.now();
         return new WeatherSnapshot(
                 today,
-                properties.getOpenweather().getRegionCode(),
+                location.regionCode(),
                 "Clouds",
                 "Cloudy (mock)",
                 BigDecimal.valueOf(20.00).setScale(2, RoundingMode.HALF_UP),
@@ -45,6 +51,11 @@ public class MockWeatherProvider implements WeatherProvider {
 
     @Override
     public List<WeatherSnapshot> fetchWeekly(LocalDate startDate, int days) {
+        return fetchWeekly(defaultLocation(), startDate, days);
+    }
+
+    @Override
+    public List<WeatherSnapshot> fetchWeekly(WeatherLocation location, LocalDate startDate, int days) {
         int size = Math.max(1, Math.min(days, 8));
         List<WeatherSnapshot> snapshots = new ArrayList<>();
 
@@ -58,7 +69,7 @@ public class MockWeatherProvider implements WeatherProvider {
 
             snapshots.add(new WeatherSnapshot(
                     targetDate,
-                    properties.getOpenweather().getRegionCode(),
+                    location.regionCode(),
                     "Clouds",
                     "Cloudy (mock)",
                     pop,
@@ -72,5 +83,10 @@ public class MockWeatherProvider implements WeatherProvider {
         }
 
         return snapshots;
+    }
+
+    private WeatherLocation defaultLocation() {
+        WeatherProperties.OpenWeather config = properties.getOpenweather();
+        return new WeatherLocation(config.getRegionCode(), config.getLat(), config.getLon());
     }
 }

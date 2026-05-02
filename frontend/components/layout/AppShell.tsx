@@ -1,19 +1,23 @@
-﻿import { ReactNode } from 'react';
-import { BottomNav, SideNav, TopNav } from './NavBars';
+import { ReactNode } from 'react';
+import { BottomNav } from './BottomNav';
+import { Footer } from './Footer';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
 
 type AppShellProps = {
   activePath: string;
   children: ReactNode;
+  withFooter?: boolean;
+  contentClassName?: string;
 };
 
-export function AppShell({ activePath, children }: AppShellProps) {
+export function AppShell({ activePath, children, withFooter = false, contentClassName = '' }: AppShellProps) {
   return (
-    <div className="min-h-screen bg-[#FAF9F6] font-sans text-on-surface">
-      <TopNav activePath={activePath} />
-      <SideNav activePath={activePath} />
-      <main className="min-h-screen pb-32 pt-24 md:ml-72 md:pb-10 md:pt-20">
-        <div className="mx-auto w-full max-w-[1200px] px-6 py-8">{children}</div>
-      </main>
+    <div className="min-h-screen bg-background font-body text-on-background selection:bg-primary-container selection:text-on-primary-container">
+      <Sidebar activePath={activePath} />
+      <Header />
+      <main className={`min-h-screen pb-24 lg:ml-64 lg:pb-12 ${contentClassName}`}>{children}</main>
+      {withFooter && <Footer />}
       <BottomNav activePath={activePath} />
     </div>
   );

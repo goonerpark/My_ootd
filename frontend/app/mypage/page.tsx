@@ -12,7 +12,6 @@ import { getAccessTokenFromStorage, setAuthUserProfileToStorage } from "@/lib/au
 import { getClosetCategoryLabel, getClosetFitLabel } from "@/lib/closet/options";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-const PLACEHOLDER_IMAGE = "/mock/base.svg";
 
 const PERSONAL_COLOR_OPTIONS: Array<{ value: PersonalColor; label: string }> = [
   { value: "UNKNOWN", label: "잘 모르겠어요" },
@@ -37,7 +36,7 @@ function toKoreanErrorMessage(message: string) {
 }
 
 function normalizeClosetImage(url?: string | null) {
-  if (!url) return PLACEHOLDER_IMAGE;
+  if (!url) return null;
   if (url.startsWith("local://closet-items/")) {
     const filename = url.replace("local://closet-items/", "");
     return `${API_BASE_URL}/uploads/closet-items/${filename}`;
@@ -46,7 +45,7 @@ function normalizeClosetImage(url?: string | null) {
 }
 
 function normalizeOotdImage(url?: string | null) {
-  if (!url) return PLACEHOLDER_IMAGE;
+  if (!url) return null;
   if (url.startsWith("local://ootd-reviews/")) {
     const filename = url.replace("local://ootd-reviews/", "");
     return `${API_BASE_URL}/uploads/ootd-reviews/${filename}`;
@@ -344,20 +343,27 @@ function RecentOotdSection({ reviews }: { reviews: OotdReview[] }) {
       <div className="space-y-4">
         {reviews.length === 0 ? (
           <div className="rounded-2xl border border-surface-container bg-white p-6 text-secondary">리뷰 기록이 없습니다.</div>
-        ) : reviews.map((review) => (
-          <Link className="flex items-center gap-4 rounded-2xl border border-surface-container bg-white p-4 transition-shadow hover:shadow-sm" href="/ootd" key={review.id}>
-            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl">
-              <img className="h-full w-full object-cover" src={normalizeOotdImage(review.imageUrls[0])} alt="OOTD 리뷰 이미지" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-label-sm text-label-sm text-primary">{review.reviewDate}</p>
-                <span className="rounded bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">{review.rating.toFixed(1)}점</span>
+        ) : reviews.map((review) => {
+          const imageUrl = normalizeOotdImage(review.imageUrls[0]);
+          return (
+            <Link className="flex items-center gap-4 rounded-2xl border border-surface-container bg-white p-4 transition-shadow hover:shadow-sm" href="/ootd" key={review.id}>
+              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
+                {imageUrl ? (
+                  <img className="h-full w-full object-cover" src={imageUrl} alt="OOTD 리뷰 이미지" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-secondary">이미지 없음</div>
+                )}
               </div>
-              <p className="mt-1 truncate font-caption-xs text-caption-xs text-on-surface-variant">{review.overallFeedback ?? "피드백 없음"}</p>
-            </div>
-          </Link>
-        ))}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-label-sm text-label-sm text-primary">{review.reviewDate}</p>
+                  <span className="rounded bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700">{review.rating.toFixed(1)}점</span>
+                </div>
+                <p className="mt-1 truncate font-caption-xs text-caption-xs text-on-surface-variant">{review.overallFeedback ?? "피드백 없음"}</p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -374,16 +380,23 @@ function RecentClosetSection({ items }: { items: ClosetItem[] }) {
         <div className="rounded-2xl border border-surface-container bg-white p-6 text-secondary">옷장 아이템이 없습니다.</div>
       ) : (
         <div className="grid grid-cols-3 gap-4">
-          {items.map((item) => (
-            <div className="space-y-2" key={item.id}>
-              <div className="aspect-square overflow-hidden rounded-2xl border border-surface-container bg-white p-2">
-                <img className="h-full w-full object-cover" src={normalizeClosetImage(item.imageUrl)} alt="최근 등록 의류" />
+          {items.map((item) => {
+            const imageUrl = normalizeClosetImage(item.imageUrl);
+            return (
+              <div className="space-y-2" key={item.id}>
+                <div className="aspect-square overflow-hidden rounded-2xl border border-surface-container bg-white p-2">
+                  {imageUrl ? (
+                    <img className="h-full w-full object-cover" src={imageUrl} alt="최근 등록 의류" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-secondary">이미지 없음</div>
+                  )}
+                </div>
+                <p className="truncate text-center font-caption-xs text-caption-xs font-bold text-primary">
+                  {item.subcategory || `${getClosetCategoryLabel(item.category)} / ${item.color ?? "-"} / ${getClosetFitLabel(item.fit)}`}
+                </p>
               </div>
-              <p className="truncate text-center font-caption-xs text-caption-xs font-bold text-primary">
-                {item.subcategory || `${getClosetCategoryLabel(item.category)} / ${item.color ?? "-"} / ${getClosetFitLabel(item.fit)}`}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <Link className="mt-8 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-6 transition-colors hover:bg-surface-container" href="/closet">

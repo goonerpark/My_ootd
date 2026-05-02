@@ -25,7 +25,6 @@ import {
 import { EmptyState, ErrorMessage, LoadingState, PrimaryButton, SecondaryButton } from "@/components/ui";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-const PLACEHOLDER_IMAGE = "/mock/base.svg";
 
 function toKoreanErrorMessage(message: string) {
   if (message === "Authentication is required") return "로그인이 필요한 기능입니다.";
@@ -34,7 +33,7 @@ function toKoreanErrorMessage(message: string) {
 }
 
 function normalizeImageUrl(url?: string | null) {
-  if (!url) return PLACEHOLDER_IMAGE;
+  if (!url) return null;
   if (url.startsWith("local://closet-items/")) {
     const filename = url.replace("local://closet-items/", "");
     return `${API_BASE_URL}/uploads/closet-items/${filename}`;
@@ -53,6 +52,8 @@ function ClosetCard({
   onEdit: (item: ClosetItem) => void;
   onDelete: (item: ClosetItem) => void;
 }) {
+  const imageUrl = normalizeImageUrl(item.imageUrl);
+
   return (
     <article
       className={[
@@ -61,11 +62,17 @@ function ClosetCard({
       ].join(" ")}
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-low">
-        <img
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          src={normalizeImageUrl(item.imageUrl)}
-          alt={`${getClosetCategoryLabel(item.category)} 이미지`}
-        />
+        {imageUrl ? (
+          <img
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            src={imageUrl}
+            alt={`${getClosetCategoryLabel(item.category)} 이미지`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-caption-xs font-bold text-secondary">
+            이미지 없음
+          </div>
+        )}
         <div className="absolute right-3 top-3 flex gap-2">
           <button
             className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-slate-500 shadow-sm backdrop-blur-sm transition hover:text-primary"

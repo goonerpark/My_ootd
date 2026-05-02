@@ -11,10 +11,9 @@ type Props = {
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-const PLACEHOLDER_IMAGE = "/mock/base.svg";
 
 function normalizeImageUrl(url?: string | null) {
-  if (!url) return PLACEHOLDER_IMAGE;
+  if (!url) return null;
   if (url.startsWith("local://closet-items/")) {
     const filename = url.replace("local://closet-items/", "");
     return `${API_BASE_URL}/uploads/closet-items/${filename}`;
@@ -57,14 +56,22 @@ function fitLabel(value?: OotdClosetSuggestion["fit"]) {
 }
 
 function SuggestionCard({ item }: { item: OotdClosetSuggestion }) {
+  const imageUrl = normalizeImageUrl(item.imageUrl);
+
   return (
     <article className="group overflow-hidden rounded-3xl border border-surface-container bg-white soft-shadow">
       <div className="aspect-square overflow-hidden bg-slate-100">
-        <img
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-          src={normalizeImageUrl(item.imageUrl)}
-          alt="옷장 대체 추천 아이템"
-        />
+        {imageUrl ? (
+          <img
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            src={imageUrl}
+            alt="옷장 대체 추천 아이템"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-caption-xs font-bold text-secondary">
+            이미지 없음
+          </div>
+        )}
       </div>
       <div className="p-5">
         <span className="mb-2 block text-caption-xs font-bold uppercase tracking-wider text-secondary">{categoryLabel(item.category)}</span>

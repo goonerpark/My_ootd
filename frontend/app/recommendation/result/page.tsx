@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout";
-import { OutfitCard } from "@/components/stitch/OutfitCard";
 import { StyleTag } from "@/components/stitch/StyleTag";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { RecommendationFeedbackPanel } from "@/components/RecommendationFeedbackPanel";
@@ -15,7 +14,6 @@ import {
   saveRecommendationFeedback,
   type RecommendationFeedbackValue
 } from "@/lib/recommendation/feedback";
-import { mockOutfitCards } from "@/lib/mock/stitch";
 import { buildRecommendationPrompt } from "@/lib/survey/prompt";
 import { getRecommendationError, getSavedRecommendationResult, getSavedSurveyState } from "@/lib/survey/storage";
 import { DEFAULT_SURVEY_FORM_STATE } from "@/lib/survey/types";
@@ -109,15 +107,6 @@ export default function RecommendationResultPage() {
           <RecommendationFeedbackPanel selected={selectedFeedback} onSelect={saveFeedback} />
         </div>
       )}
-
-      <section className="mb-6">
-        <h2 className="mb-3 text-lg font-semibold">Explore Similar Vibes</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {mockOutfitCards.map((item) => (
-            <OutfitCard key={item.id} title={item.title} imageUrl={item.imageUrl} />
-          ))}
-        </div>
-      </section>
 
       <div className="flex flex-wrap gap-2">
         <Link className="rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700" href="/survey">설문 다시 작성</Link>

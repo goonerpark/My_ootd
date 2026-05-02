@@ -7,6 +7,9 @@ import com.ootd.backend.closet.exception.ClosetItemNotFoundException;
 import com.ootd.backend.ootdreview.exception.OotdImageStorageException;
 import com.ootd.backend.ootdreview.exception.OotdReviewAccessDeniedException;
 import com.ootd.backend.ootdreview.exception.OotdReviewNotFoundException;
+import com.ootd.backend.ootdpost.exception.OotdCommentNotFoundException;
+import com.ootd.backend.ootdpost.exception.OotdPostAccessDeniedException;
+import com.ootd.backend.ootdpost.exception.OotdPostNotFoundException;
 import com.ootd.backend.survey.exception.SurveyNotFoundException;
 import com.ootd.backend.user.exception.AuthenticationFailedException;
 import com.ootd.backend.user.exception.DuplicateEmailException;
@@ -18,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -70,6 +75,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail("OOTD_IMAGE_STORAGE_FAILED", "Image storage failed"));
     }
 
+    @ExceptionHandler(OotdPostNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdPostNotFound(OotdPostNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("OOTD_POST_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OotdCommentNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdCommentNotFound(OotdCommentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail("OOTD_COMMENT_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OotdPostAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOotdPostAccessDenied(OotdPostAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail("OOTD_POST_FORBIDDEN", ex.getMessage()));
+    }
+
     @ExceptionHandler(ClosetItemNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleClosetItemNotFound(ClosetItemNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -115,6 +138,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.fail("VALIDATION_ERROR", "Invalid request parameter: " + ex.getName()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiResponse.fail("UPLOAD_TOO_LARGE", "Uploaded image is too large. Please upload images up to 25MB each."));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMultipart(MultipartException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail("INVALID_MULTIPART_REQUEST", "Image upload request is invalid. Please select image files again."));
     }
 
     @ExceptionHandler(Exception.class)

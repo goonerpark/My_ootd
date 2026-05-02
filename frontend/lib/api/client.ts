@@ -1,13 +1,20 @@
 import type {
   ApiResponse,
   ClosetItem,
+  CreateOotdPostPayload,
   TodayClosetRecommendation,
   CreateOotdReviewPayload,
   Gender,
+  LikeToggleResult,
   LoginRequest,
   LoginResult,
+  LookCategory,
   OotdClosetSuggestionsResult,
+  OotdComment,
+  OotdPostDetail,
+  OotdPostSummary,
   OotdReview,
+  PageResponse,
   RecommendationHistoryItem,
   SignUpRequest,
   SignUpResult,
@@ -103,8 +110,16 @@ async function requestVoid(path: string, options: RequestOptions = {}): Promise<
   }
 }
 
-export function fetchTodayWeather() {
-  return request<TodayWeather>("/api/weather/today");
+export function fetchTodayWeather(params: { regionCode?: string; lat?: number; lon?: number; targetDate?: string; startHour?: string; endHour?: string } = {}) {
+  const search = new URLSearchParams();
+  if (params.regionCode) search.set("regionCode", params.regionCode);
+  if (typeof params.lat === "number") search.set("lat", String(params.lat));
+  if (typeof params.lon === "number") search.set("lon", String(params.lon));
+  if (params.targetDate) search.set("targetDate", params.targetDate);
+  if (params.startHour) search.set("startHour", params.startHour);
+  if (params.endHour) search.set("endHour", params.endHour);
+  const query = search.toString();
+  return request<TodayWeather>(`/api/weather/today${query ? `?${query}` : ""}`);
 }
 
 export function fetchMyProfile(token: string) {
@@ -295,4 +310,83 @@ export function updateClosetItem(token: string, id: number, payload: UpsertClose
 
 export function deleteClosetItem(token: string, id: number) {
   return requestVoid(`/api/closet-items/${id}`, { method: "DELETE", token });
+}
+
+export function fetchOotdPosts(params: { page?: number; size?: number; lookCategory?: LookCategory; hashtag?: string } = {}) {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page ?? 0));
+  search.set("size", String(params.size ?? 20));
+  if (params.lookCategory) search.set("lookCategory", params.lookCategory);
+  if (params.hashtag) search.set("hashtag", params.hashtag);
+  return request<PageResponse<OotdPostSummary>>(`/api/ootd-posts?${search.toString()}`);
+}
+
+export function fetchOutfitInspirations(params: { page?: number; size?: number; lookCategory?: LookCategory } = {}) {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page ?? 0));
+  search.set("size", String(params.size ?? 20));
+  if (params.lookCategory) search.set("lookCategory", params.lookCategory);
+  return request<PageResponse<OotdPostSummary>>(`/api/outfit-inspirations?${search.toString()}`);
+}
+
+export function fetchOotdPostsByHashtag(hashtagName: string, params: { page?: number; size?: number } = {}) {
+  const search = new URLSearchParams();
+  search.set("page", String(params.page ?? 0));
+  search.set("size", String(params.size ?? 20));
+  return request<PageResponse<OotdPostSummary>>(`/api/ootd-posts/hashtags/${encodeURIComponent(hashtagName)}?${search.toString()}`);
+}
+
+export function fetchOotdPostDetail(id: number) {
+  return request<OotdPostDetail>(`/api/ootd-posts/${id}`);
+}
+
+export async function createOotdPost(token: string, payload: CreateOotdPostPayload) {
+  const formData = new FormData();
+  payload.images.forEach((image) => formData.append("images", image));
+  formData.append("caption", payload.caption);
+  formData.append("lookCategory", payload.lookCategory);
+  payload.hashtags.forEach((hashtag) => formData.append("hashtags", hashtag));
+  if (payload.brandTagsJson) {
+    formData.append("brandTagsJson", payload.brandTagsJson);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/ootd-posts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData,
+    cache: "no-store"
+  });
+
+  let apiPayload: ApiResponse<OotdPostDetail> | null = null;
+  try {
+    apiPayload = (await response.json()) as ApiResponse<OotdPostDetail>;
+  } catch {
+    apiPayload = null;
+  }
+
+  if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
+    const code = apiPayload?.error?.code;
+    throw new ApiRequestError(message, response.status, code);
+  }
+
+  return apiPayload.data;
+}
+
+export function toggleOotdPostLike(token: string, id: number) {
+  return request<LikeToggleResult>(`/api/ootd-posts/${id}/likes`, { method: "POST", token });
+}
+
+export function createOotdPostComment(token: string, id: number, content: string) {
+  return request<OotdComment>(`/api/ootd-posts/${id}/comments`, {
+    method: "POST",
+    token,
+    body: { content }
+  });
+}
+
+export function deleteOotdPostComment(token: string, id: number) {
+  return requestVoid(`/api/ootd-comments/${id}`, { method: "DELETE", token });
 }

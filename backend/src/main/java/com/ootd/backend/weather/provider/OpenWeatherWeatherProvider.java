@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ootd.backend.weather.config.WeatherProperties;
 import com.ootd.backend.weather.provider.openweather.dto.OpenWeatherOneCallResponse;
 import com.ootd.backend.weather.service.dto.WeatherSnapshot;
+import com.ootd.backend.weather.service.dto.WeatherLocation;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -38,7 +39,16 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
 
     @Override
     public WeatherSnapshot fetchToday() {
-        List<WeatherSnapshot> snapshots = fetchWeekly(LocalDate.now(), 1);
+        List<WeatherSnapshot> snapshots = fetchWeekly(defaultLocation(), LocalDate.now(), 1);
+        if (snapshots.isEmpty()) {
+            throw new IllegalStateException("OpenWeather response is invalid");
+        }
+        return snapshots.get(0);
+    }
+
+    @Override
+    public WeatherSnapshot fetchToday(WeatherLocation location) {
+        List<WeatherSnapshot> snapshots = fetchWeekly(location, LocalDate.now(), 1);
         if (snapshots.isEmpty()) {
             throw new IllegalStateException("OpenWeather response is invalid");
         }
@@ -47,12 +57,17 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
 
     @Override
     public List<WeatherSnapshot> fetchWeekly(LocalDate startDate, int days) {
+        return fetchWeekly(defaultLocation(), startDate, days);
+    }
+
+    @Override
+    public List<WeatherSnapshot> fetchWeekly(WeatherLocation location, LocalDate startDate, int days) {
         WeatherProperties.OpenWeather config = properties.getOpenweather();
         if (config.getApiKey() == null || config.getApiKey().isBlank()) {
             throw new IllegalStateException("OPENWEATHER_API_KEY is empty");
         }
 
-        OpenWeatherOneCallResponse response = fetchOneCallResponse(config);
+        OpenWeatherOneCallResponse response = fetchOneCallResponse(config, location);
 
         if (response == null || response.daily() == null || response.daily().isEmpty()) {
             throw new IllegalStateException("OpenWeather response is invalid");
@@ -79,7 +94,7 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
 
             snapshots.add(new WeatherSnapshot(
                     targetDate,
-                    config.getRegionCode(),
+                    location.regionCode(),
                     main,
                     description,
                     percent(daily.pop()),
@@ -99,14 +114,14 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
         return baseUrl.replace("https://", "").replace("http://", "");
     }
 
-    private OpenWeatherOneCallResponse fetchOneCallResponse(WeatherProperties.OpenWeather config) {
+    private OpenWeatherOneCallResponse fetchOneCallResponse(WeatherProperties.OpenWeather config, WeatherLocation location) {
         return restClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("https")
                         .host(extractHost(config.getBaseUrl()))
                         .path("/data/3.0/onecall")
-                        .queryParam("lat", config.getLat())
-                        .queryParam("lon", config.getLon())
+                        .queryParam("lat", location.lat())
+                        .queryParam("lon", location.lon())
                         .queryParam("appid", config.getApiKey())
                         .queryParam("units", config.getUnits())
                         .queryParam("lang", config.getLang())
@@ -114,6 +129,11 @@ public class OpenWeatherWeatherProvider implements WeatherProvider {
                         .build())
                 .retrieve()
                 .body(OpenWeatherOneCallResponse.class);
+    }
+
+    private WeatherLocation defaultLocation() {
+        WeatherProperties.OpenWeather config = properties.getOpenweather();
+        return new WeatherLocation(config.getRegionCode(), config.getLat(), config.getLon());
     }
 
     private BigDecimal decimal(double value) {

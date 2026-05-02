@@ -256,3 +256,90 @@ export type TodayClosetRecommendation = {
   summaryComment: string;
   closetItems: ClosetRecommendedItem[];
 };
+
+export type LookCategory =
+  | "DAILY"
+  | "CASUAL"
+  | "STREET"
+  | "MINIMAL"
+  | "FORMAL"
+  | "WORK"
+  | "DATE"
+  | "TRAVEL"
+  | "SPORTY"
+  | "ETC";
+
+export type PageResponse<T> = {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  first: boolean;
+  last: boolean;
+};
+
+export type OotdPostSummary = {
+  postId: number;
+  thumbnailUrl: string | null;
+  hasMultipleImages: boolean;
+  likeCount: number;
+  viewCount: number;
+  createdAt: string;
+  authorNickname: string;
+  authorProfileImageUrl: string | null;
+  lookCategory: LookCategory;
+};
+
+export type OotdBrandTag = {
+  brandTagId: number;
+  brandName: string;
+  shopUrl: string | null;
+  positionX: number;
+  positionY: number;
+};
+
+export type OotdPostImage = {
+  imageId: number;
+  imageUrl: string;
+  imageOrder: number;
+  brandTags: OotdBrandTag[];
+};
+
+export type OotdComment = {
+  commentId: number;
+  content: string;
+  createdAt: string;
+  authorId: number;
+  authorNickname: string;
+  authorProfileImageUrl: string | null;
+};
+
+export type OotdPostDetail = {
+  postId: number;
+  caption: string;
+  lookCategory: LookCategory;
+  images: OotdPostImage[];
+  hashtags: string[];
+  likeCount: number;
+  viewCount: number;
+  createdAt: string;
+  authorId: number;
+  authorNickname: string;
+  authorProfileImageUrl: string | null;
+  comments: OotdComment[];
+};
+
+export type CreateOotdPostPayload = {
+  images: File[];
+  caption: string;
+  lookCategory: LookCategory;
+  hashtags: string[];
+  brandTagsJson?: string;
+};
+
+export type LikeToggleResult = {
+  postId: number;
+  liked: boolean;
+  likeCount: number;
+};

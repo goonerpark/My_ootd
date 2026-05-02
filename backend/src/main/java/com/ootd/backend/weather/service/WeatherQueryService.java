@@ -5,6 +5,7 @@ import com.ootd.backend.weather.dto.TodayWeatherResponse;
 import com.ootd.backend.weather.entity.WeatherCache;
 import com.ootd.backend.weather.provider.WeatherProvider;
 import com.ootd.backend.weather.repository.WeatherCacheRepository;
+import com.ootd.backend.weather.service.dto.WeatherLocation;
 import com.ootd.backend.weather.service.dto.WeatherSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -77,6 +78,43 @@ public class WeatherQueryService {
     public TodayWeatherResponse getTodayWeather() {
         WeatherCache cache = getOrFetchTodayWeatherCache();
         return toResponse(cache);
+    }
+
+    @Transactional
+    public TodayWeatherResponse getWeather(String regionCode, Double lat, Double lon, LocalDate targetDate) {
+        WeatherLocation location = resolveLocation(regionCode, lat, lon);
+        LocalDate safeTargetDate = normalizeTargetDate(targetDate);
+        WeatherCache cache = getOrFetchWeatherCache(location, safeTargetDate);
+        return toResponse(cache);
+    }
+
+    private WeatherCache getOrFetchWeatherCache(WeatherLocation location, LocalDate targetDate) {
+        String lockKey = targetDate + ":" + location.regionCode();
+        Object lock = weatherCacheLocks.computeIfAbsent(lockKey, key -> new Object());
+
+        synchronized (lock) {
+            try {
+                Optional<WeatherCache> existing = weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, location.regionCode());
+                if (existing.isPresent()) {
+                    WeatherCache cached = existing.get();
+                    if (isFresh(cached)) {
+                        return cached;
+                    }
+                    WeatherSnapshot snapshot = fetchLocationSnapshotWithFallback(location, targetDate);
+                    return updateCacheInNewTransaction(cached.getId(), snapshot);
+                }
+
+                WeatherSnapshot snapshot = fetchLocationSnapshotWithFallback(location, targetDate);
+                try {
+                    return saveCacheInNewTransaction(snapshot);
+                } catch (DataIntegrityViolationException ex) {
+                    return findCacheAfterDuplicate(targetDate, location.regionCode())
+                            .orElseThrow(() -> ex);
+                }
+            } finally {
+                weatherCacheLocks.remove(lockKey, lock);
+            }
+        }
     }
 
     @Transactional
@@ -243,6 +281,32 @@ public class WeatherQueryService {
         return template.execute(status -> weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, regionCode));
     }
 
+    private WeatherSnapshot fetchLocationSnapshotWithFallback(WeatherLocation location, LocalDate targetDate) {
+        LocalDate today = LocalDate.now();
+        int dayOffset = Math.max(0, Math.min(7, (int) java.time.temporal.ChronoUnit.DAYS.between(today, targetDate)));
+        int days = dayOffset + 1;
+        String provider = weatherProperties.getProvider();
+        WeatherProvider configuredProvider = findProviderOrThrow(provider);
+        WeatherProvider mockProvider = findProviderOrThrow("mock");
+
+        if ("mock".equalsIgnoreCase(provider)) {
+            return snapshotForTarget(mockProvider.fetchWeekly(location, today, days), targetDate);
+        }
+
+        try {
+            return snapshotForTarget(configuredProvider.fetchWeekly(location, today, days), targetDate);
+        } catch (Exception ex) {
+            return snapshotForTarget(mockProvider.fetchWeekly(location, today, days), targetDate);
+        }
+    }
+
+    private WeatherSnapshot snapshotForTarget(List<WeatherSnapshot> snapshots, LocalDate targetDate) {
+        return snapshots.stream()
+                .filter(snapshot -> targetDate.equals(snapshot.targetDate()))
+                .findFirst()
+                .orElseGet(() -> snapshots.isEmpty() ? findProviderOrThrow("mock").fetchToday() : snapshots.get(snapshots.size() - 1));
+    }
+
     private Optional<WeatherCache> findCacheAfterDuplicate(LocalDate targetDate, String regionCode) {
         Optional<WeatherCache> found = findCacheInNewTransaction(targetDate, regionCode);
         if (found.isPresent()) {
@@ -309,6 +373,34 @@ public class WeatherQueryService {
         }
         String description = cache.getWeatherDescription();
         return description != null && description.toLowerCase().contains("(mock)");
+    }
+
+    private WeatherLocation resolveLocation(String regionCode, Double lat, Double lon) {
+        WeatherProperties.OpenWeather config = weatherProperties.getOpenweather();
+        String safeRegionCode = regionCode == null || regionCode.isBlank()
+                ? config.getRegionCode()
+                : sanitizeRegionCode(regionCode);
+        double safeLat = lat == null ? config.getLat() : lat;
+        double safeLon = lon == null ? config.getLon() : lon;
+        return new WeatherLocation(safeRegionCode, safeLat, safeLon);
+    }
+
+    private LocalDate normalizeTargetDate(LocalDate targetDate) {
+        LocalDate today = LocalDate.now();
+        if (targetDate == null || targetDate.isBefore(today)) {
+            return today;
+        }
+        LocalDate maxDate = today.plusDays(7);
+        return targetDate.isAfter(maxDate) ? maxDate : targetDate;
+    }
+
+    private String sanitizeRegionCode(String value) {
+        String sanitized = value.trim()
+                .replaceAll("[^A-Za-z0-9가-힣_.-]", "_");
+        if (sanitized.length() > 50) {
+            return sanitized.substring(0, 50);
+        }
+        return sanitized;
     }
 
     private String normalizeDescription(String input) {

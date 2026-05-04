@@ -325,7 +325,7 @@ public class MemberClosetRecommendationService {
     ) {
         LocalDate targetDate = weatherCache.getTargetDate();
         DailyRecommendation recommendation = dailyRecommendationRepository
-                .findByUserIdAndTargetDateAndRecommendationType(userId, targetDate, RecommendationType.MEMBER_CLOSET)
+                .findFirstByUserIdAndTargetDateAndRecommendationTypeOrderByCreatedAtDesc(userId, targetDate, RecommendationType.MEMBER_CLOSET)
                 .orElseGet(() -> DailyRecommendation.builder()
                         .userId(userId)
                         .targetDate(targetDate)

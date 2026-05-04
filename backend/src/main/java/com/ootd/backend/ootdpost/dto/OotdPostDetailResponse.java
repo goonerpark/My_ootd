@@ -13,6 +13,7 @@ public record OotdPostDetailResponse(
         List<String> hashtags,
         Long likeCount,
         Long viewCount,
+        boolean likedByMe,
         LocalDateTime createdAt,
         Long authorId,
         String authorNickname,

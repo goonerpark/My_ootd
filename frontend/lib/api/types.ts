@@ -323,6 +323,7 @@ export type OotdPostDetail = {
   hashtags: string[];
   likeCount: number;
   viewCount: number;
+  likedByMe: boolean;
   createdAt: string;
   authorId: number;
   authorNickname: string;
@@ -332,6 +333,14 @@ export type OotdPostDetail = {
 
 export type CreateOotdPostPayload = {
   images: File[];
+  caption: string;
+  lookCategory: LookCategory;
+  hashtags: string[];
+  brandTagsJson?: string;
+};
+
+export type UpdateOotdPostPayload = {
+  images?: File[];
   caption: string;
   lookCategory: LookCategory;
   hashtags: string[];

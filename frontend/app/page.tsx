@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Camera, CloudSun, Heart, Shirt, Sparkles } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Camera, Cloud, CloudRain, CloudSun, Heart, Shirt, Snowflake, Sparkles, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout';
 import { fetchOotdPosts, fetchTodayMemberRecommendation, fetchTodayRecommendation, fetchTodayWeather, fetchWeeklyRecommendations } from '@/lib/api/client';
@@ -17,6 +18,17 @@ function formatDateLabel(date: string) {
   const parsed = new Date(`${date}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return date;
   return new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }).format(parsed);
+}
+
+function HomeWeatherIcon({ weather }: { weather: TodayWeather | null }) {
+  const main = (weather?.weatherMain ?? '').toLowerCase();
+  const description = weather?.weatherDescription ?? '';
+
+  if (main.includes('snow') || description.includes('\uB208')) return <Snowflake className="text-sky-400" />;
+  if (main.includes('rain') || main.includes('drizzle') || description.includes('\uBE44')) return <CloudRain className="text-blue-500" />;
+  if (main.includes('cloud') || description.includes('\uAD6C\uB984') || description.includes('\uD750\uB9BC')) return <Cloud className="text-stone-400" />;
+  if (main.includes('clear') || description.includes('\uB9D1')) return <Sun className="text-amber-400" />;
+  return <CloudSun className="text-amber-400" />;
 }
 
 export default function HomePage() {
@@ -116,7 +128,10 @@ export default function HomePage() {
                 <div className="flex items-end justify-between">
                   <div>
                     <span className="text-6xl font-black text-[#5A6D5E]">{loading ? '...' : temp(weather?.currentTemp)}</span>
-                    <p className="mt-2 flex items-center gap-2 text-lg font-medium text-on-surface-variant"><CloudSun className="text-amber-400" />{weather?.weatherDescription ?? '날씨 조회 중'}</p>
+                    <p className="mt-2 flex items-center gap-2 text-lg font-medium text-on-surface-variant">
+                      <HomeWeatherIcon weather={weather} />
+                      {weather?.weatherDescription ?? '날씨 조회 중'}
+                    </p>
                   </div>
                   <div className="text-right text-sm text-stone-400">
                     <p>최저 {temp(weather?.minTemp)} / 최고 {temp(weather?.maxTemp)}</p>
@@ -170,7 +185,7 @@ export default function HomePage() {
                     <RecommendationLine label="Shoes" value={displayRecommendation.shoes} />
                     <RecommendationLine label="Acc" value={displayRecommendation.accessory} />
                   </div>
-                  <p className="rounded-2xl bg-white/15 p-4 text-sm leading-relaxed">{displayRecommendation.comment ?? '날씨와 취향을 반영해 추천한 코디입니다.'}</p>
+                  <p className="rounded-2xl bg-white/15 p-4 text-sm leading-relaxed">{displayRecommendation.comment ?? '날씨와 취향을 반영한 추천 코디입니다.'}</p>
                 </div>
               ) : (
                 <div>
@@ -190,7 +205,7 @@ export default function HomePage() {
               ) : null}
 
               <div className="flex items-center justify-between text-xs font-semibold opacity-75">
-                <span>{isLoggedIn ? `${selectedRecommendationIndex + 1} / ${Math.max(weeklyRecommendations.length, 1)}` : '로그인 시 날짜 이동 가능'}</span>
+                <span>{isLoggedIn ? `${selectedRecommendationIndex + 1} / ${Math.max(weeklyRecommendations.length, 1)}` : '로그인 후 날짜 이동 가능'}</span>
                 <span>최대 +7일</span>
               </div>
             </article>
@@ -255,7 +270,7 @@ function RecommendationLine({ label, value }: { label: string; value?: string | 
   );
 }
 
-function Shortcut({ href, icon, title, subtitle }: { href: string; icon: React.ReactNode; title: string; subtitle: string }) {
+function Shortcut({ href, icon, title, subtitle }: { href: string; icon: ReactNode; title: string; subtitle: string }) {
   return (
     <Link href={href} className="flex items-center gap-4 rounded-2xl bg-secondary-fixed/30 p-6 transition hover:bg-secondary-fixed/50">
       <span className="rounded-xl bg-white p-3 text-primary">{icon}</span>

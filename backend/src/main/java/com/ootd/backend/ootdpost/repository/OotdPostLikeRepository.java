@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface OotdPostLikeRepository extends JpaRepository<OotdPostLike, Long> {
     Optional<OotdPostLike> findByPostIdAndUserId(Long postId, Long userId);
+
+    boolean existsByPostIdAndUserId(Long postId, Long userId);
 }

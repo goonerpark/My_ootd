@@ -86,19 +86,36 @@ public class WeeklyRecommendationService {
     }
 
     private void saveDailyRecommendation(Long userId, Gender gender, WeatherCache weatherCache, WeeklyDraft draft) {
-        DailyRecommendation recommendation = DailyRecommendation.builder()
-                .userId(userId)
-                .targetDate(weatherCache.getTargetDate())
-                .gender(gender)
-                .weatherCacheId(weatherCache.getId())
-                .recommendationType(RecommendationType.MEMBER_SURVEY)
-                .topItem(draft.top())
-                .outerItem(draft.outer())
-                .bottomItem(draft.bottom())
-                .shoesItem(draft.shoes())
-                .accessoryItem(draft.accessory())
-                .summaryComment(draft.comment())
-                .build();
+        DailyRecommendation recommendation = dailyRecommendationRepository
+                .findFirstByUserIdAndTargetDateAndRecommendationTypeOrderByCreatedAtDesc(
+                        userId,
+                        weatherCache.getTargetDate(),
+                        RecommendationType.MEMBER_SURVEY
+                )
+                .orElseGet(() -> DailyRecommendation.builder()
+                        .userId(userId)
+                        .targetDate(weatherCache.getTargetDate())
+                        .gender(gender)
+                        .weatherCacheId(weatherCache.getId())
+                        .recommendationType(RecommendationType.MEMBER_SURVEY)
+                        .topItem(draft.top())
+                        .outerItem(draft.outer())
+                        .bottomItem(draft.bottom())
+                        .shoesItem(draft.shoes())
+                        .accessoryItem(draft.accessory())
+                        .summaryComment(draft.comment())
+                        .build());
+        recommendation.update(
+                weatherCache.getId(),
+                gender,
+                RecommendationType.MEMBER_SURVEY,
+                draft.top(),
+                draft.outer(),
+                draft.bottom(),
+                draft.shoes(),
+                draft.accessory(),
+                draft.comment()
+        );
         dailyRecommendationRepository.save(Objects.requireNonNull(recommendation));
     }
 

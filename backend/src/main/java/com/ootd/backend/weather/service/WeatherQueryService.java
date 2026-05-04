@@ -46,7 +46,7 @@ public class WeatherQueryService {
 
         synchronized (lock) {
             try {
-                Optional<WeatherCache> existing = weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode);
+                Optional<WeatherCache> existing = weatherCacheRepository.findFirstByTargetDateAndRegionCodeOrderByFetchedAtDescIdDesc(today, regionCode);
                 if (existing.isPresent()) {
                     WeatherCache cached = existing.get();
                     if (isFresh(cached)) {
@@ -57,7 +57,7 @@ public class WeatherQueryService {
                 }
 
                 WeatherSnapshot snapshot = fetchFromConfiguredProviderWithFallback();
-                Optional<WeatherCache> doubleChecked = weatherCacheRepository.findByTargetDateAndRegionCode(today, regionCode);
+                Optional<WeatherCache> doubleChecked = weatherCacheRepository.findFirstByTargetDateAndRegionCodeOrderByFetchedAtDescIdDesc(today, regionCode);
                 if (doubleChecked.isPresent()) {
                     return doubleChecked.get();
                 }
@@ -94,7 +94,7 @@ public class WeatherQueryService {
 
         synchronized (lock) {
             try {
-                Optional<WeatherCache> existing = weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, location.regionCode());
+                Optional<WeatherCache> existing = weatherCacheRepository.findFirstByTargetDateAndRegionCodeOrderByFetchedAtDescIdDesc(targetDate, location.regionCode());
                 if (existing.isPresent()) {
                     WeatherCache cached = existing.get();
                     if (isFresh(cached)) {
@@ -278,7 +278,7 @@ public class WeatherQueryService {
         TransactionTemplate template = new TransactionTemplate(Objects.requireNonNull(transactionManager));
         template.setReadOnly(true);
         template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        return template.execute(status -> weatherCacheRepository.findByTargetDateAndRegionCode(targetDate, regionCode));
+        return template.execute(status -> weatherCacheRepository.findFirstByTargetDateAndRegionCodeOrderByFetchedAtDescIdDesc(targetDate, regionCode));
     }
 
     private WeatherSnapshot fetchLocationSnapshotWithFallback(WeatherLocation location, LocalDate targetDate) {

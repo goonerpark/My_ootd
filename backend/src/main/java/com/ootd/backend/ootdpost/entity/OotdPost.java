@@ -91,6 +91,23 @@ public class OotdPost extends BaseTimeEntity {
         this.postHashtags.add(postHashtag);
     }
 
+    public void update(String caption, LookCategory lookCategory) {
+        this.caption = caption;
+        this.lookCategory = lookCategory;
+    }
+
+    public void clearImages() {
+        this.images.clear();
+    }
+
+    public void clearHashtags() {
+        this.postHashtags.clear();
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
     public void increaseViewCount() {
         this.viewCount += 1;
     }

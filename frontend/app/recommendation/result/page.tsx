@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout";
 import { StyleTag } from "@/components/stitch/StyleTag";
 import { RecommendationCard } from "@/components/RecommendationCard";
@@ -29,13 +29,11 @@ export default function RecommendationResultPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFeedback, setSelectedFeedback] = useState<RecommendationFeedbackValue | null>(null);
-
-  const promptPreview = useMemo(() => {
-    const state = getSavedSurveyState() ?? DEFAULT_SURVEY_FORM_STATE;
-    return buildRecommendationPrompt(state);
-  }, []);
+  const [promptPreview, setPromptPreview] = useState(() => buildRecommendationPrompt(DEFAULT_SURVEY_FORM_STATE));
 
   useEffect(() => {
+    const state = getSavedSurveyState() ?? DEFAULT_SURVEY_FORM_STATE;
+    setPromptPreview(buildRecommendationPrompt(state));
     setSelectedFeedback(getLatestRecommendationFeedback()?.value ?? null);
 
     const cachedResult = getSavedRecommendationResult();

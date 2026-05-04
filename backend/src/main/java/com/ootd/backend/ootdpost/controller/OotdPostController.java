@@ -7,6 +7,7 @@ import com.ootd.backend.ootdpost.dto.LikeToggleResponse;
 import com.ootd.backend.ootdpost.dto.OotdCommentResponse;
 import com.ootd.backend.ootdpost.dto.OotdPostDetailResponse;
 import com.ootd.backend.ootdpost.dto.OotdPostSummaryResponse;
+import com.ootd.backend.ootdpost.dto.UpdateOotdPostRequest;
 import com.ootd.backend.ootdpost.entity.LookCategory;
 import com.ootd.backend.ootdpost.service.OotdPostService;
 import com.ootd.backend.security.auth.CustomUserDetails;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,6 +47,26 @@ public class OotdPostController {
         return ResponseEntity.ok(ApiResponse.ok(ootdPostService.createPost(userId, request)));
     }
 
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<OotdPostDetailResponse>> updatePost(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @Valid @ModelAttribute UpdateOotdPostRequest request
+    ) {
+        Long userId = extractUserId(userDetails);
+        return ResponseEntity.ok(ApiResponse.ok(ootdPostService.updatePost(userId, id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deletePost(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id
+    ) {
+        Long userId = extractUserId(userDetails);
+        ootdPostService.deletePost(userId, id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<Page<OotdPostSummaryResponse>>> getPosts(
             @PageableDefault(size = 20) Pageable pageable,
@@ -63,8 +85,12 @@ public class OotdPostController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<OotdPostDetailResponse>> getPostDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(ootdPostService.getPostDetail(id)));
+    public ResponseEntity<ApiResponse<OotdPostDetailResponse>> getPostDetail(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id
+    ) {
+        Long userId = userDetails == null ? null : userDetails.getUserId();
+        return ResponseEntity.ok(ApiResponse.ok(ootdPostService.getPostDetail(id, userId)));
     }
 
     @PostMapping("/{id}/likes")

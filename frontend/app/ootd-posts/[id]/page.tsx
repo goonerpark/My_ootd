@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Bookmark, ChevronLeft, ChevronRight, Heart, MessageCircle, Send, Shirt } from 'lucide-react';
+import { Bookmark, ChevronLeft, ChevronRight, Heart, MessageCircle, Pencil, Send, Shirt, Trash2 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { createOotdPostComment, fetchOotdPostDetail, toggleOotdPostLike } from '@/lib/api/client';
+import { createOotdPostComment, deleteOotdPost, fetchOotdPostDetail, toggleOotdPostLike } from '@/lib/api/client';
 import type { OotdPostDetail } from '@/lib/api/types';
-import { getAccessTokenFromStorage } from '@/lib/auth/token';
+import { getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
 
 function Avatar({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl?: string | null; name: string; size?: string }) {
   if (imageUrl) return <img src={imageUrl} alt={name} className={`${size} rounded-full border border-stone-100 object-cover`} />;
@@ -15,6 +15,7 @@ function Avatar({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl?: string | nu
 }
 
 export default function OotdPostDetailPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const postId = Number(params.id);
   const [post, setPost] = useState<OotdPostDetail | null>(null);
@@ -24,9 +25,14 @@ export default function OotdPostDetailPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showBrandTags, setShowBrandTags] = useState(false);
 
   useEffect(() => {
     setToken(getAccessTokenFromStorage());
+    setCurrentUserId(getAuthUserProfileFromStorage()?.userId ?? null);
   }, []);
 
   useEffect(() => {
@@ -36,10 +42,13 @@ export default function OotdPostDetailPage() {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const detail = await fetchOotdPostDetail(postId);
+        const currentToken = getAccessTokenFromStorage();
+        const detail = await fetchOotdPostDetail(postId, currentToken);
         if (!ignore) {
           setPost(detail);
           setActiveImageIndex(0);
+          setShowBrandTags(false);
+          setLiked(detail.likedByMe);
         }
       } catch {
         if (!ignore) {
@@ -51,21 +60,25 @@ export default function OotdPostDetailPage() {
       }
     };
     load();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, [postId]);
 
   const activeImage = post?.images[activeImageIndex] ?? post?.images[0];
   const brandRows = useMemo(() => post?.images.flatMap((image) => image.brandTags) ?? [], [post?.images]);
+  const isAuthor = Boolean(token && post && currentUserId === post.authorId);
 
   const like = async () => {
     if (!post) return;
     if (!token) {
-      setMessage('로그인 후 좋아요를 누를 수 있습니다.');
+      setMessage('로그인해야 좋아요를 누를 수 있습니다.');
       return;
     }
     try {
       const result = await toggleOotdPostLike(token, post.postId);
       setPost((prev) => prev ? { ...prev, likeCount: result.likeCount } : prev);
+      setLiked(result.liked);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '좋아요 처리에 실패했습니다.');
     }
@@ -75,7 +88,7 @@ export default function OotdPostDetailPage() {
     event.preventDefault();
     if (!post) return;
     if (!token) {
-      setMessage('로그인 후 댓글을 작성할 수 있습니다.');
+      setMessage('로그인해야 댓글을 작성할 수 있습니다.');
       return;
     }
     if (!comment.trim()) return;
@@ -86,6 +99,29 @@ export default function OotdPostDetailPage() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '댓글 작성에 실패했습니다.');
     }
+  };
+
+  const removePost = async () => {
+    if (!post || !token || deleting) return;
+    const confirmed = window.confirm('게시글을 삭제할까요? 삭제하면 게시판에 더 이상 보이지 않습니다.');
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setMessage(null);
+    try {
+      await deleteOotdPost(token, post.postId);
+      router.push('/ootd-board');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '게시글 삭제에 실패했습니다.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const moveImage = (nextIndex: number) => {
+    if (!post) return;
+    setActiveImageIndex(Math.min(post.images.length - 1, Math.max(0, nextIndex)));
+    setShowBrandTags(false);
   };
 
   if (loading) {
@@ -118,25 +154,48 @@ export default function OotdPostDetailPage() {
           <section className="group relative lg:col-span-7">
             <div className="relative overflow-hidden rounded-2xl bg-surface-container shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
               {activeImage ? (
-                <img className="aspect-[4/5] h-auto w-full object-cover" src={activeImage.imageUrl} alt="OOTD 상세 이미지" />
+                <button
+                  type="button"
+                  onClick={() => setShowBrandTags((value) => !value)}
+                  className="block w-full"
+                  aria-label={showBrandTags ? '브랜드 태그 숨기기' : '브랜드 태그 보기'}
+                >
+                  <img className="aspect-[4/5] h-auto w-full object-cover" src={activeImage.imageUrl} alt="OOTD 상세 이미지" />
+                </button>
               ) : (
                 <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-on-surface-variant"><Shirt size={42} />이미지가 없습니다</div>
               )}
-              {activeImage?.brandTags.map((tag) => (
-                <a key={tag.brandTagId} href={tag.shopUrl ?? '#'} target={tag.shopUrl ? '_blank' : undefined} className="absolute cursor-pointer active:scale-95" style={{ left: `${tag.positionX}%`, top: `${tag.positionY}%` }}>
-                  <div className="flex items-center gap-2 rounded-lg bg-black/70 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+
+              {activeImage && activeImage.brandTags.length > 0 ? (
+                <div className="absolute left-4 top-4 rounded-full bg-white/85 px-4 py-2 text-xs font-bold text-primary shadow-sm backdrop-blur">
+                  {showBrandTags ? '사진을 누르면 태그 숨기기' : '사진을 누르면 브랜드 태그 보기'}
+                </div>
+              ) : null}
+
+              {showBrandTags && activeImage?.brandTags.map((tag) => (
+                <a
+                  key={tag.brandTagId}
+                  href={tag.shopUrl ?? '#'}
+                  target={tag.shopUrl ? '_blank' : undefined}
+                  rel={tag.shopUrl ? 'noreferrer' : undefined}
+                  className="absolute -translate-x-1/2 -translate-y-full cursor-pointer active:scale-95"
+                  style={{ left: `${tag.positionX}%`, top: `${tag.positionY}%` }}
+                >
+                  <div className="flex items-center gap-2 rounded-lg bg-black/75 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
                     <span className="h-2 w-2 rounded-full bg-primary-fixed" />
                     {tag.brandName}
                     <ChevronRight size={14} />
                   </div>
+                  <span className="mx-auto mt-1 block h-2.5 w-2.5 rounded-full border-2 border-black bg-white" />
                 </a>
               ))}
+
               {post.images.length > 1 && (
                 <>
-                  <button type="button" onClick={() => setActiveImageIndex((value) => Math.max(0, value - 1))} className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur">
+                  <button type="button" onClick={() => moveImage(activeImageIndex - 1)} className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur">
                     <ChevronLeft />
                   </button>
-                  <button type="button" onClick={() => setActiveImageIndex((value) => Math.min(post.images.length - 1, value + 1))} className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur">
+                  <button type="button" onClick={() => moveImage(activeImageIndex + 1)} className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 shadow-md backdrop-blur">
                     <ChevronRight />
                   </button>
                 </>
@@ -145,7 +204,7 @@ export default function OotdPostDetailPage() {
           </section>
 
           <section className="flex flex-col gap-6 lg:col-span-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <Avatar imageUrl={post.authorProfileImageUrl} name={post.authorNickname} />
                 <div>
@@ -153,13 +212,24 @@ export default function OotdPostDetailPage() {
                   <p className="text-sm text-stone-400">my_ootd member</p>
                 </div>
               </div>
-              <button className="rounded-full bg-surface-container-low px-6 py-2 text-sm font-semibold text-primary">Follow</button>
+              {isAuthor ? (
+                <div className="flex items-center gap-2">
+                  <Link href={`/ootd-upload?edit=${post.postId}`} className="inline-flex items-center gap-1 rounded-full bg-surface-container-low px-4 py-2 text-sm font-semibold text-primary">
+                    <Pencil size={15} /> 수정
+                  </Link>
+                  <button type="button" onClick={removePost} disabled={deleting} className="inline-flex items-center gap-1 rounded-full bg-error-container px-4 py-2 text-sm font-semibold text-on-error-container disabled:opacity-60">
+                    <Trash2 size={15} /> {deleting ? '삭제 중' : '삭제'}
+                  </button>
+                </div>
+              ) : (
+                <button className="rounded-full bg-surface-container-low px-6 py-2 text-sm font-semibold text-primary">Follow</button>
+              )}
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center gap-6 border-b border-stone-100 pb-6">
                 <button type="button" onClick={like} className="flex items-center gap-2">
-                  <Heart className="text-error" fill="currentColor" />
+                  <Heart className={liked ? 'text-error' : 'text-stone-400'} fill={liked ? 'currentColor' : 'none'} />
                   <span className="font-bold">{post.likeCount}</span>
                 </button>
                 <div className="flex items-center gap-2"><MessageCircle className="text-stone-400" /><span className="font-bold">{post.comments.length}</span></div>
@@ -178,7 +248,7 @@ export default function OotdPostDetailPage() {
             <div className="space-y-3 rounded-xl bg-surface-container-low p-5">
               <h2 className="text-sm font-bold text-[#5A6D5E]">브랜드 정보</h2>
               {brandRows.length === 0 ? <p className="text-sm text-stone-500">등록된 브랜드 태그가 없습니다.</p> : brandRows.map((tag) => (
-                <a key={tag.brandTagId} href={tag.shopUrl ?? '#'} target={tag.shopUrl ? '_blank' : undefined} className="flex items-center justify-between text-sm">
+                <a key={tag.brandTagId} href={tag.shopUrl ?? '#'} target={tag.shopUrl ? '_blank' : undefined} rel={tag.shopUrl ? 'noreferrer' : undefined} className="flex items-center justify-between text-sm">
                   <span className="text-stone-500">Brand</span>
                   <span className="font-medium text-on-surface">{tag.brandName}</span>
                 </a>

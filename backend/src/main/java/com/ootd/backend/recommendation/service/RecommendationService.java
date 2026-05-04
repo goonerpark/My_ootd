@@ -148,7 +148,7 @@ public class RecommendationService {
             RecommendationType type
     ) {
         DailyRecommendation recommendation = dailyRecommendationRepository
-                .findByUserIdAndTargetDateAndRecommendationType(userId, weatherCache.getTargetDate(), type)
+                .findFirstByUserIdAndTargetDateAndRecommendationTypeOrderByCreatedAtDesc(userId, weatherCache.getTargetDate(), type)
                 .orElseGet(() -> DailyRecommendation.builder()
                         .userId(userId)
                         .targetDate(weatherCache.getTargetDate())

@@ -47,7 +47,7 @@ export default function RecommendationLoadingPage() {
         if (!cancelled) {
           window.setTimeout(() => {
             router.replace("/recommendation/result");
-          }, 1200);
+          }, 150);
         }
       }
     };

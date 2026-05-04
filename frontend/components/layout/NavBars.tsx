@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Bell, Camera, ClipboardList, LayoutDashboard, Shirt, UserRound } from 'lucide-react';
 import { clearAccessTokenFromStorage, getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
+import { AppLogo } from '@/components/ui';
 
 const navItems = [
   { href: '/', label: 'Home', icon: LayoutDashboard },
@@ -45,9 +46,7 @@ export function TopNav({ activePath }: { activePath: string }) {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-slate-100 bg-white/80 px-6 py-4 shadow-sm backdrop-blur-md md:pl-[304px]">
       <div className="mx-auto flex w-full max-w-full items-center justify-between gap-4">
-        <Link className="text-xl font-extrabold tracking-tight text-slate-900" href="/">
-          my_ootd
-        </Link>
+        <AppLogo size="sm" />
 
         <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
           {navItems.map((item) => (
@@ -114,9 +113,7 @@ export function SideNav({ activePath }: { activePath: string }) {
   return (
     <aside className="fixed left-0 top-0 z-[60] hidden h-screen w-72 flex-col border-r border-slate-200 bg-[#FAF9F6] px-4 pt-6 text-sm font-medium text-slate-800 md:flex">
       <div className="mb-10 px-4">
-        <Link className="text-2xl font-black text-slate-900" href="/">
-          my_ootd
-        </Link>
+        <AppLogo size="sm" />
         <p className="text-sm font-medium text-slate-500">AI Fashion Stylist</p>
       </div>
 

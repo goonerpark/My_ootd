@@ -7,5 +7,5 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 public interface SurveyAnswerRepository extends JpaRepository<SurveyAnswer, Long> {
-    Optional<SurveyAnswer> findByUserIdAndSurveyDate(Long userId, LocalDate surveyDate);
+    Optional<SurveyAnswer> findFirstByUserIdAndSurveyDateOrderByCreatedAtDesc(Long userId, LocalDate surveyDate);
 }

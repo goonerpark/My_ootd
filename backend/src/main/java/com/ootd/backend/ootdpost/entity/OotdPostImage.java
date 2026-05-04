@@ -62,6 +62,10 @@ public class OotdPostImage extends BaseTimeEntity {
         this.brandTags.add(brandTag);
     }
 
+    public void clearBrandTags() {
+        this.brandTags.clear();
+    }
+
     public List<OotdImageBrandTag> getBrandTags() {
         return Collections.unmodifiableList(brandTags);
     }

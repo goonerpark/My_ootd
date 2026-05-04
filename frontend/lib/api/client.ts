@@ -23,6 +23,7 @@ import type {
   TodayWeather,
   UpsertClosetItemPayload,
   UpsertSurveyPayload,
+  UpdateOotdPostPayload,
   UpdateUserProfilePayload,
   UserProfile,
   WeeklyRecommendationItem
@@ -336,8 +337,8 @@ export function fetchOotdPostsByHashtag(hashtagName: string, params: { page?: nu
   return request<PageResponse<OotdPostSummary>>(`/api/ootd-posts/hashtags/${encodeURIComponent(hashtagName)}?${search.toString()}`);
 }
 
-export function fetchOotdPostDetail(id: number) {
-  return request<OotdPostDetail>(`/api/ootd-posts/${id}`);
+export function fetchOotdPostDetail(id: number, token?: string | null) {
+  return request<OotdPostDetail>(`/api/ootd-posts/${id}`, token ? { token } : {});
 }
 
 export async function createOotdPost(token: string, payload: CreateOotdPostPayload) {
@@ -373,6 +374,45 @@ export async function createOotdPost(token: string, payload: CreateOotdPostPaylo
   }
 
   return apiPayload.data;
+}
+
+export async function updateOotdPost(token: string, id: number, payload: UpdateOotdPostPayload) {
+  const formData = new FormData();
+  payload.images?.forEach((image) => formData.append("images", image));
+  formData.append("caption", payload.caption);
+  formData.append("lookCategory", payload.lookCategory);
+  payload.hashtags.forEach((hashtag) => formData.append("hashtags", hashtag));
+  if (payload.brandTagsJson) {
+    formData.append("brandTagsJson", payload.brandTagsJson);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/ootd-posts/${id}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData,
+    cache: "no-store"
+  });
+
+  let apiPayload: ApiResponse<OotdPostDetail> | null = null;
+  try {
+    apiPayload = (await response.json()) as ApiResponse<OotdPostDetail>;
+  } catch {
+    apiPayload = null;
+  }
+
+  if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
+    const code = apiPayload?.error?.code;
+    throw new ApiRequestError(message, response.status, code);
+  }
+
+  return apiPayload.data;
+}
+
+export function deleteOotdPost(token: string, id: number) {
+  return requestVoid(`/api/ootd-posts/${id}`, { method: "DELETE", token });
 }
 
 export function toggleOotdPostLike(token: string, id: number) {

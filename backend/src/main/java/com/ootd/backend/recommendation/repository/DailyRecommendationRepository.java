@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface DailyRecommendationRepository extends JpaRepository<DailyRecommendation, Long> {
 
-    Optional<DailyRecommendation> findByUserIdAndTargetDateAndRecommendationType(
+    Optional<DailyRecommendation> findFirstByUserIdAndTargetDateAndRecommendationTypeOrderByCreatedAtDesc(
             Long userId,
             LocalDate targetDate,
             RecommendationType recommendationType

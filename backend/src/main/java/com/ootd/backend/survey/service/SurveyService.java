@@ -21,7 +21,7 @@ public class SurveyService {
     @Transactional
     public TodaySurveyResponse upsertTodaySurvey(Long userId, UpsertSurveyRequest request) {
         LocalDate today = LocalDate.now();
-        SurveyAnswer answer = surveyAnswerRepository.findByUserIdAndSurveyDate(userId, today)
+        SurveyAnswer answer = surveyAnswerRepository.findFirstByUserIdAndSurveyDateOrderByCreatedAtDesc(userId, today)
                 .map(existing -> {
                     existing.updateAnswer(request.outingPurpose(), request.notes());
                     return existing;
@@ -40,14 +40,14 @@ public class SurveyService {
     @Transactional(readOnly = true)
     public TodaySurveyResponse getTodaySurvey(Long userId) {
         LocalDate today = LocalDate.now();
-        SurveyAnswer answer = surveyAnswerRepository.findByUserIdAndSurveyDate(userId, today)
+        SurveyAnswer answer = surveyAnswerRepository.findFirstByUserIdAndSurveyDateOrderByCreatedAtDesc(userId, today)
                 .orElseThrow(() -> new SurveyNotFoundException("Today's survey was not found"));
         return toResponse(answer);
     }
 
     @Transactional(readOnly = true)
     public SurveyAnswer findTodaySurveyOrNull(Long userId) {
-        return surveyAnswerRepository.findByUserIdAndSurveyDate(userId, LocalDate.now()).orElse(null);
+        return surveyAnswerRepository.findFirstByUserIdAndSurveyDateOrderByCreatedAtDesc(userId, LocalDate.now()).orElse(null);
     }
 
     private TodaySurveyResponse toResponse(SurveyAnswer answer) {

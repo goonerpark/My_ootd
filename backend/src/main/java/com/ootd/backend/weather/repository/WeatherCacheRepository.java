@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface WeatherCacheRepository extends JpaRepository<WeatherCache, Long> {
-    Optional<WeatherCache> findByTargetDateAndRegionCode(LocalDate targetDate, String regionCode);
+    Optional<WeatherCache> findFirstByTargetDateAndRegionCodeOrderByFetchedAtDescIdDesc(LocalDate targetDate, String regionCode);
 
     List<WeatherCache> findByTargetDateBetweenAndRegionCode(LocalDate startDate, LocalDate endDate, String regionCode);
 }

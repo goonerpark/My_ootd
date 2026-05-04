@@ -12,6 +12,7 @@ import com.ootd.backend.ootdpost.dto.OotdCommentResponse;
 import com.ootd.backend.ootdpost.dto.OotdPostDetailResponse;
 import com.ootd.backend.ootdpost.dto.OotdPostImageResponse;
 import com.ootd.backend.ootdpost.dto.OotdPostSummaryResponse;
+import com.ootd.backend.ootdpost.dto.UpdateOotdPostRequest;
 import com.ootd.backend.ootdpost.entity.LookCategory;
 import com.ootd.backend.ootdpost.entity.OotdComment;
 import com.ootd.backend.ootdpost.entity.OotdHashtag;
@@ -88,6 +89,41 @@ public class OotdPostService {
         return toDetailResponse(saved);
     }
 
+    @Transactional
+    public OotdPostDetailResponse updatePost(Long userId, Long postId, UpdateOotdPostRequest request) {
+        OotdPost post = getActivePost(postId);
+        assertPostAuthor(post, userId);
+
+        post.update(request.getCaption().trim(), request.getLookCategory());
+        post.clearHashtags();
+        ootdPostRepository.flush();
+        attachHashtags(post, parseHashtags(request.getHashtags()));
+
+        if (hasReplacementImages(request.getImages())) {
+            List<MultipartFile> images = validateImages(request.getImages());
+            post.clearImages();
+            ootdPostRepository.flush();
+            for (int i = 0; i < images.size(); i++) {
+                String imageUrl = imageStorageClient.store(images.get(i));
+                post.addImage(imageUrl, i);
+            }
+            attachBrandTags(post, parseBrandTags(request.getBrandTagsJson()));
+        } else if (StringUtils.hasText(request.getBrandTagsJson())) {
+            post.getImages().forEach(OotdPostImage::clearBrandTags);
+            ootdPostRepository.flush();
+            attachBrandTags(post, parseBrandTags(request.getBrandTagsJson()));
+        }
+
+        return toDetailResponse(post);
+    }
+
+    @Transactional
+    public void deletePost(Long userId, Long postId) {
+        OotdPost post = getActivePost(postId);
+        assertPostAuthor(post, userId);
+        post.deactivate();
+    }
+
     @Transactional(readOnly = true)
     public Page<OotdPostSummaryResponse> getPosts(Pageable pageable, LookCategory lookCategory, String hashtag) {
         String normalizedHashtag = normalizeNullableHashtag(hashtag);
@@ -97,9 +133,14 @@ public class OotdPostService {
 
     @Transactional
     public OotdPostDetailResponse getPostDetail(Long id) {
+        return getPostDetail(id, null);
+    }
+
+    @Transactional
+    public OotdPostDetailResponse getPostDetail(Long id, Long viewerUserId) {
         OotdPost post = getActivePost(id);
         post.increaseViewCount();
-        return toDetailResponse(post);
+        return toDetailResponse(post, viewerUserId);
     }
 
     @Transactional
@@ -167,6 +208,16 @@ public class OotdPostService {
     private OotdPost getActivePost(Long postId) {
         return ootdPostRepository.findByIdAndIsActiveTrue(postId)
                 .orElseThrow(() -> new OotdPostNotFoundException(postId));
+    }
+
+    private void assertPostAuthor(OotdPost post, Long userId) {
+        if (post.getAuthor() == null || post.getAuthor().getId() == null || !post.getAuthor().getId().equals(userId)) {
+            throw new OotdPostAccessDeniedException("Only the post author can modify this post");
+        }
+    }
+
+    private boolean hasReplacementImages(List<MultipartFile> images) {
+        return images != null && images.stream().anyMatch(image -> image != null && !image.isEmpty());
     }
 
     private List<MultipartFile> validateImages(List<MultipartFile> images) {
@@ -315,8 +366,13 @@ public class OotdPostService {
     }
 
     private OotdPostDetailResponse toDetailResponse(OotdPost post) {
+        return toDetailResponse(post, null);
+    }
+
+    private OotdPostDetailResponse toDetailResponse(OotdPost post, Long viewerUserId) {
         User author = post.getAuthor();
         UserProfile profile = author.getProfile();
+        boolean likedByMe = viewerUserId != null && likeRepository.existsByPostIdAndUserId(post.getId(), viewerUserId);
         return new OotdPostDetailResponse(
                 post.getId(),
                 post.getCaption(),
@@ -329,6 +385,7 @@ public class OotdPostService {
                         .toList(),
                 post.getLikeCount(),
                 post.getViewCount(),
+                likedByMe,
                 post.getCreatedAt(),
                 author.getId(),
                 author.getNickname(),

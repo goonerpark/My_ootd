@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Cloud, Grid3X3, Home, PlusCircle, Sparkles, UserRound } from 'lucide-react';
+import { AppLogo } from '@/components/ui';
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -19,9 +20,7 @@ export function Sidebar({ activePath }: { activePath: string }) {
   return (
     <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col gap-2 border-r border-stone-100 bg-white p-6 font-headline text-sm tracking-wide text-[#5A6D5E] lg:flex">
       <div className="mb-8">
-        <Link href="/" className="text-xl font-black text-[#5A6D5E]">
-          my_ootd
-        </Link>
+        <AppLogo size="sm" />
         <p className="mt-1 text-xs font-light text-stone-400">Your Daily Style Guide</p>
       </div>
       <nav className="flex flex-col gap-1">

@@ -822,7 +822,7 @@ body {
 }
 
 .appLogo-sm {
-  width: clamp(150px, 22vw, 210px);
+  width: clamp(120px, 16vw, 160px);
 }
 
 .sectionCard,

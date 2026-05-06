@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import type { OotdClosetSuggestion, OotdClosetSuggestionsResult } from "@/lib/api/types";
 import { EmptyState, ErrorMessage, LoadingState } from "@/components/ui";
@@ -60,12 +61,14 @@ function SuggestionCard({ item }: { item: OotdClosetSuggestion }) {
 
   return (
     <article className="group overflow-hidden rounded-3xl border border-surface-container bg-white soft-shadow">
-      <div className="aspect-square overflow-hidden bg-slate-100">
+      <div className="relative aspect-square overflow-hidden bg-slate-100">
         {imageUrl ? (
-          <img
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          <Image
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
             src={imageUrl}
             alt="옷장 대체 추천 아이템"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-caption-xs font-bold text-secondary">
@@ -81,7 +84,7 @@ function SuggestionCard({ item }: { item: OotdClosetSuggestion }) {
         </p>
         <div className="rounded-xl border border-tertiary-fixed-dim bg-tertiary-fixed p-3">
           <p className="text-caption-xs leading-relaxed text-on-tertiary-fixed">
-            <span className="font-bold">추천 사유:</span> {item.reason}
+            <span className="font-bold">추천 이유:</span> {item.reason}
           </p>
         </div>
       </div>

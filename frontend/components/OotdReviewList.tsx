@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { OotdReview } from "@/lib/api/types";
 import { EmptyState, LoadingState } from "@/components/ui";
@@ -22,7 +23,7 @@ function normalizeImageUrl(url: string) {
 }
 
 function canRenderImage(url: string) {
-  return /^(https?:\/\/|blob:|data:|\/)/i.test(url);
+  return /^(https?:\/\/|\/)/i.test(url);
 }
 
 export function OotdReviewList({ reviews, selectedReviewId, loading, onSelect }: OotdReviewListProps) {
@@ -61,8 +62,12 @@ export function OotdReviewList({ reviews, selectedReviewId, loading, onSelect }:
               ].join(" ")}
               onClick={() => onSelect(review.id)}
             >
-              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
-                {thumb ? <img className="h-full w-full object-cover" src={thumb} alt={`리뷰 ${review.id} 썸네일`} /> : <span className="grid h-full place-items-center text-xs text-secondary">이미지</span>}
+              <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
+                {thumb ? (
+                  <Image className="object-cover" src={thumb} alt={`리뷰 ${review.id} 썸네일`} fill sizes="64px" />
+                ) : (
+                  <span className="grid h-full place-items-center text-xs text-secondary">이미지</span>
+                )}
               </div>
               <div className="min-w-0 flex-grow">
                 <div className="flex items-start justify-between gap-3">

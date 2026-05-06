@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import { CalendarDays, CheckCircle2, Palette, Ruler, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { OotdReview } from "@/lib/api/types";
@@ -59,7 +60,7 @@ function FeedbackCard({
         <Icon className="text-primary" size={22} />
       </div>
       <h3 className="mb-3 font-title-sm text-title-sm">{title}</h3>
-      <p className="text-body-md text-secondary">{body || "분석 내용이 없습니다."}</p>
+      <p className="text-body-md text-secondary">{body || "遺꾩꽍 ?댁슜???놁뒿?덈떎."}</p>
     </article>
   );
 }
@@ -69,7 +70,7 @@ export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProp
     return (
       <section className="rounded-3xl border border-surface-container bg-white p-8 soft-shadow">
         <h2 className="mb-4 font-headline-md text-headline-md text-primary">{title}</h2>
-        <EmptyState description="표시할 평가 결과가 없습니다." />
+        <EmptyState description="?쒖떆???됯? 寃곌낵媛 ?놁뒿?덈떎." />
       </section>
     );
   }
@@ -84,18 +85,18 @@ export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProp
         <div className="rounded-3xl border border-surface-container bg-white p-8 soft-shadow">
           <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-surface-container-low">
             {displayImage ? (
-              <img className="h-full w-full object-cover" src={displayImage} alt="업로드한 OOTD 이미지" />
+              <Image className="object-cover" src={displayImage} alt="업로드한 OOTD 이미지" fill sizes="(max-width: 1024px) 100vw, 50vw" />
             ) : (
-              <div className="grid h-full place-items-center text-secondary">이미지를 표시할 수 없습니다.</div>
+              <div className="grid h-full place-items-center text-secondary">?대?吏瑜??쒖떆?????놁뒿?덈떎.</div>
             )}
           </div>
-          {!displayImage && mappedImageUrls.length > 0 && <p className="mt-3 break-all text-caption-xs text-secondary">저장 URL: {mappedImageUrls[0]}</p>}
+          {!displayImage && mappedImageUrls.length > 0 && <p className="mt-3 break-all text-caption-xs text-secondary">???URL: {mappedImageUrls[0]}</p>}
         </div>
 
         <div className="flex flex-col justify-center space-y-6">
           <div>
             <h2 className="font-display-lg text-primary">{title}</h2>
-            <p className="text-body-lg text-secondary">AI가 분석한 당신의 오늘의 코디 점수입니다.</p>
+            <p className="text-body-lg text-secondary">AI媛 遺꾩꽍???뱀떊???ㅻ뒛??肄붾뵒 ?먯닔?낅땲??</p>
           </div>
           <div className="flex flex-col items-center rounded-3xl border border-surface-container bg-white p-8 soft-shadow">
             <div className="mb-4 flex gap-1">
@@ -109,25 +110,27 @@ export function OotdReviewResultCard({ title, review }: OotdReviewResultCardProp
             </div>
             <div className="font-display-lg text-display-lg font-black text-primary">{ratingLabel(review.rating)}</div>
             <div className="mt-4 rounded-full bg-secondary-container px-4 py-2 font-label-sm text-label-sm text-on-secondary-container">
-              {review.overallFeedback ? "AI 평가 완료" : "평가 결과"}
+              {review.overallFeedback ? "AI ?됯? ?꾨즺" : "?됯? 寃곌낵"}
             </div>
             <div className="mt-5 grid w-full gap-2 text-sm text-secondary">
               <p className="flex items-center gap-2">
                 <CalendarDays size={16} />
-                리뷰 날짜: {review.reviewDate}
+                由щ럭 ?좎쭨: {review.reviewDate}
               </p>
-              <p>생성 시각: {formatDateTime(review.createdAt)}</p>
-              <p>모델 버전: {review.aiModelVersion ?? "없음"}</p>
+              <p>?앹꽦 ?쒓컖: {formatDateTime(review.createdAt)}</p>
+              <p>紐⑤뜽 踰꾩쟾: {review.aiModelVersion ?? "?놁쓬"}</p>
             </div>
           </div>
         </div>
       </div>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <FeedbackCard title="핏 분석" body={review.fitFeedback} icon={Ruler} />
-        <FeedbackCard title="컬러 조합" body={review.colorFeedback} icon={Palette} />
-        <FeedbackCard title="종합 의견" body={review.overallFeedback} icon={CheckCircle2} />
+        <FeedbackCard title="??遺꾩꽍" body={review.fitFeedback} icon={Ruler} />
+        <FeedbackCard title="而щ윭 議고빀" body={review.colorFeedback} icon={Palette} />
+        <FeedbackCard title="醫낇빀 ?섍껄" body={review.overallFeedback} icon={CheckCircle2} />
       </section>
     </section>
   );
 }
+
+

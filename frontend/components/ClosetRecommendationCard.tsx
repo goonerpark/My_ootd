@@ -1,4 +1,5 @@
-﻿import type { RecommendationSlot, TodayClosetRecommendation } from "@/lib/api/types";
+﻿import Image from "next/image";
+import type { RecommendationSlot, TodayClosetRecommendation } from "@/lib/api/types";
 import { getClosetCategoryLabel, getClosetFitLabel } from "@/lib/closet/options";
 import { EmptyState, ErrorMessage, LoadingState } from "@/components/ui";
 
@@ -64,7 +65,7 @@ function ClosetSlotCard({ data, slot }: { data: TodayClosetRecommendation; slot:
   return (
     <article className="closetRecoCard">
       <h4>{slotLabel}</h4>
-      <img className="closetRecoImage" src={normalizeImageUrl(item.imageUrl)} alt={`${slotLabel} 추천 아이템`} />
+      <Image className="closetRecoImage object-cover" src={normalizeImageUrl(item.imageUrl)} alt={`${slotLabel} 추천 아이템`} width={320} height={320} sizes="(max-width: 768px) 50vw, 20vw" />
       <div className="closetTagRow">
         <span className="closetTag">{getClosetCategoryLabel(item.category)}</span>
         {item.color && <span className="closetTag">{item.color}</span>}
@@ -105,3 +106,4 @@ export function ClosetRecommendationCard({ data, loading, hasToken, error }: Pro
     </section>
   );
 }
+

@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import type { ClosetItem } from "@/lib/api/types";
 import {
   getClosetCategoryLabel,
@@ -30,7 +31,7 @@ export function ClosetItemCard({ item, selected, onSelect, onDelete }: ClosetIte
 
   return (
     <article className={`closetCard${selected ? " active" : ""}`}>
-      <img className="closetCardImage" src={imageUrl} alt={`${getClosetCategoryLabel(item.category)} 이미지`} />
+      <Image className="closetCardImage object-cover" src={imageUrl} alt={`${getClosetCategoryLabel(item.category)} 이미지`} width={320} height={420} sizes="(max-width: 768px) 50vw, 25vw" />
       <div className="closetCardBody">
         <div className="closetTagRow">
           <span className="closetTag">{getClosetCategoryLabel(item.category)}</span>
@@ -54,3 +55,5 @@ export function ClosetItemCard({ item, selected, onSelect, onDelete }: ClosetIte
     </article>
   );
 }
+
+

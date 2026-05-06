@@ -1,12 +1,21 @@
-"use client";
+﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Camera, CheckCircle2, Grid2X2, History, PlusCircle, Save, Settings, Shirt, UserRound } from "lucide-react";
+import { Camera, CheckCircle2, Grid2X2, History, PlusCircle, Save, Shirt, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/components/layout";
 import { ErrorMessage, LoadingState } from "@/components/ui";
-import { ApiRequestError, fetchClosetItems, fetchMyProfile, fetchOotdReviews, fetchRecommendationHistory, fetchTodaySurvey, updateMyProfile } from "@/lib/api/client";
+import {
+  ApiRequestError,
+  fetchClosetItems,
+  fetchMyProfile,
+  fetchOotdReviews,
+  fetchRecommendationHistory,
+  fetchTodaySurvey,
+  updateMyProfile
+} from "@/lib/api/client";
 import type { BodyType, ClosetItem, OotdReview, PersonalColor, RecommendationHistoryItem, TodaySurvey, UserProfile } from "@/lib/api/types";
 import { getAccessTokenFromStorage, setAuthUserProfileToStorage } from "@/lib/auth/token";
 import { getClosetCategoryLabel, getClosetFitLabel } from "@/lib/closet/options";
@@ -194,7 +203,7 @@ export default function MyPage() {
       <AppShell activePath="/mypage">
         <section className="rounded-3xl border border-surface-container bg-white p-8 shadow-soft">
           <h1 className="font-headline-md text-headline-md">Profile & Preferences</h1>
-          <p className="mt-2 text-secondary">로그인하면 성별, 체형, 퍼스널 컬러 등 나만의 스타일 정보를 관리할 수 있어요.</p>
+          <p className="mt-2 text-secondary">로그인하면 성별, 체형, 퍼스널 컬러 등 개인 스타일 정보를 관리할 수 있어요.</p>
           <div className="mt-5 flex gap-2">
             <Link className="rounded-full bg-primary px-5 py-2 text-sm font-bold text-white" href="/login">로그인</Link>
             <Link className="rounded-full border border-outline-variant bg-white px-5 py-2 text-sm font-bold text-primary" href="/signup">회원가입</Link>
@@ -218,7 +227,7 @@ export default function MyPage() {
             </div>
             <div className="flex-1 text-center md:text-left">
               <div className="mb-4">
-                <h1 className="font-display-lg text-display-lg text-primary">{profile?.nickname ?? "스타일 사용자"}</h1>
+                <h1 className="font-display-lg text-display-lg text-primary">{profile?.nickname ?? "사용자"}</h1>
                 <p className="font-body-md text-body-md text-on-surface-variant">{profile?.email ?? "-"}</p>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -235,7 +244,7 @@ export default function MyPage() {
           <article className="flex flex-col justify-between rounded-3xl bg-primary p-8 text-on-primary shadow-xl">
             <div>
               <h2 className="mb-2 font-title-sm text-title-sm">오늘의 데일리 설문</h2>
-              <p className="mb-6 font-body-md text-body-md opacity-80">오늘 일정과 기분을 알려주면 더 정확한 추천을 받을 수 있어요.</p>
+              <p className="mb-6 font-body-md text-body-md opacity-80">오늘 일정과 분위기를 알려주면 더 정확한 추천을 받을 수 있어요.</p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-md">
               <div className="mb-2 flex items-center justify-between">
@@ -259,7 +268,7 @@ export default function MyPage() {
             </div>
             <div>
               <h2 className="font-title-sm text-title-sm text-primary">개인 스타일 정보</h2>
-              <p className="text-sm text-secondary">추천 정확도를 높이기 위해 체형, 퍼스널 컬러, 키/몸무게를 입력해 주세요.</p>
+              <p className="text-sm text-secondary">추천 정확도를 높이기 위해 체형, 퍼스널 컬러, 키, 몸무게를 입력해 주세요.</p>
             </div>
           </div>
           <form className="grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={onSaveProfile}>
@@ -285,7 +294,7 @@ export default function MyPage() {
             </label>
             <label className="space-y-2 md:col-span-2">
               <span className="text-sm font-bold text-primary">선호 스타일</span>
-              <input className="w-full rounded-2xl border border-surface-container bg-surface-container-low px-4 py-3" maxLength={50} placeholder="예: 미니멀, 캐주얼, 포멀" value={preferredStyle} onChange={(event) => setPreferredStyle(event.target.value)} />
+              <input className="w-full rounded-2xl border border-surface-container bg-surface-container-low px-4 py-3" maxLength={50} placeholder="예: 미니멀, 캐주얼, 스트릿" value={preferredStyle} onChange={(event) => setPreferredStyle(event.target.value)} />
             </label>
             <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-white shadow-lg transition hover:opacity-90 disabled:opacity-60 md:col-span-2" type="submit" disabled={saving}>
               <Save size={18} />
@@ -347,9 +356,9 @@ function RecentOotdSection({ reviews }: { reviews: OotdReview[] }) {
           const imageUrl = normalizeOotdImage(review.imageUrls[0]);
           return (
             <Link className="flex items-center gap-4 rounded-2xl border border-surface-container bg-white p-4 transition-shadow hover:shadow-sm" href="/ootd" key={review.id}>
-              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
+              <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-low">
                 {imageUrl ? (
-                  <img className="h-full w-full object-cover" src={imageUrl} alt="OOTD 리뷰 이미지" />
+                  <Image className="object-cover" src={imageUrl} alt="OOTD 리뷰 이미지" fill sizes="64px" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-secondary">이미지 없음</div>
                 )}
@@ -384,9 +393,9 @@ function RecentClosetSection({ items }: { items: ClosetItem[] }) {
             const imageUrl = normalizeClosetImage(item.imageUrl);
             return (
               <div className="space-y-2" key={item.id}>
-                <div className="aspect-square overflow-hidden rounded-2xl border border-surface-container bg-white p-2">
+                <div className="relative aspect-square overflow-hidden rounded-2xl border border-surface-container bg-white">
                   {imageUrl ? (
-                    <img className="h-full w-full object-cover" src={imageUrl} alt="최근 등록 의류" />
+                    <Image className="object-cover" src={imageUrl} alt="최근 등록 의류" fill sizes="(max-width: 768px) 33vw, 160px" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-secondary">이미지 없음</div>
                   )}

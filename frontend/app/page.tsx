@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Camera, Cloud, CloudRain, CloudSun, Heart, Shirt, Snowflake, Sparkles, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -228,7 +229,13 @@ export default function HomePage() {
                     <Link key={post.postId} href={`/ootd-posts/${post.postId}`} className="group">
                       <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-xl bg-surface-container-high">
                         {post.thumbnailUrl ? (
-                          <img src={post.thumbnailUrl} alt="OOTD" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                          <Image
+                            src={post.thumbnailUrl}
+                            alt="OOTD"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-sm text-on-surface-variant">이미지 없음</div>
                         )}

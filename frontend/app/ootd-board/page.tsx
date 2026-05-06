@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Eye, Heart, Images, Shirt } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout';
@@ -18,7 +19,13 @@ function PostCard({ post }: { post: OotdPostSummary }) {
     <Link href={`/ootd-posts/${post.postId}`} className="group block">
       <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-surface-container-low shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
         {post.thumbnailUrl ? (
-          <img src={post.thumbnailUrl} alt={`${post.authorNickname} OOTD`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          <Image
+            src={post.thumbnailUrl}
+            alt={`${post.authorNickname} OOTD`}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+          />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-on-surface-variant">
             <Shirt size={40} />

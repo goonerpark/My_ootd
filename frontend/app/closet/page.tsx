@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Edit3, Heart, Plus, Search, SlidersHorizontal, Trash2, X } from "lucide-react";
 import useSWR from "swr";
@@ -64,10 +65,12 @@ const ClosetCard = memo(function ClosetCard({
     >
       <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-low">
         {imageUrl ? (
-          <img
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          <Image
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             src={imageUrl}
-            alt={`${getClosetCategoryLabel(item.category)} ?대?吏`}
+            alt={`${getClosetCategoryLabel(item.category)} 이미지`}
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-caption-xs font-bold text-secondary">

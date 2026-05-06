@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, Sparkles, ThumbsUp, WandSparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/layout';
@@ -13,11 +14,11 @@ function InspirationCard({ post }: { post: OotdPostSummary }) {
     <Link href={`/ootd-posts/${post.postId}`} className="group flex cursor-pointer flex-col">
       <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-surface-container-low shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
         {post.thumbnailUrl ? (
-          <img className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" src={post.thumbnailUrl} alt="추천 코디" />
+          <Image className="object-cover transition-transform duration-500 group-hover:scale-105" src={post.thumbnailUrl} alt="추천 코디" fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-on-surface-variant">
             <WandSparkles size={40} />
-            <span className="text-sm font-semibold">이미지 없음</span>
+            <span className="text-sm font-semibold">?대?吏 ?놁쓬</span>
           </div>
         )}
         <div className="absolute left-4 top-4 rounded-lg bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">@{post.authorNickname}</div>
@@ -43,11 +44,10 @@ function EmptyState() {
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary-container/15 text-primary">
         <WandSparkles size={34} />
       </div>
-      <h2 className="font-headline text-2xl font-bold text-primary">추천할 코디가 아직 없습니다</h2>
-      <p className="mt-3 text-on-surface-variant">좋아요 5개 이상 받은 OOTD가 생기면 이곳에 표시됩니다.</p>
+      <h2 className="font-headline text-2xl font-bold text-primary">異붿쿇??肄붾뵒媛 ?꾩쭅 ?놁뒿?덈떎</h2>
+      <p className="mt-3 text-on-surface-variant">醫뗭븘??5媛??댁긽 諛쏆? OOTD媛 ?앷린硫??닿납???쒖떆?⑸땲??</p>
       <Link href="/ootd-board" className="mt-8 inline-flex rounded-full bg-primary px-6 py-3 font-bold text-on-primary shadow-sm transition hover:opacity-90">
-        OOTD 보러가기
-      </Link>
+        OOTD 蹂대윭媛湲?      </Link>
     </div>
   );
 }
@@ -69,7 +69,7 @@ export default function OutfitInspirationsPage() {
       } catch {
         if (!ignore) {
           setPosts([]);
-          setErrorMessage('추천 코디를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+          setErrorMessage('異붿쿇 肄붾뵒瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲?? ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂.');
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -84,9 +84,9 @@ export default function OutfitInspirationsPage() {
       <div className="mx-auto max-w-7xl px-4 py-10 md:px-10">
         <section className="mb-10">
           <div className="max-w-2xl">
-            <h1 className="font-headline text-4xl font-bold text-on-background">오늘의 코디 추천</h1>
+            <h1 className="font-headline text-4xl font-bold text-on-background">?ㅻ뒛??肄붾뵒 異붿쿇</h1>
             <p className="mt-4 text-lg leading-relaxed text-on-surface-variant">
-              좋아요 5개 이상 받은 실제 커뮤니티 룩만 모았습니다. <span className="font-semibold text-primary">오늘 이런 옷차림도 좋아요.</span>
+              醫뗭븘??5媛??댁긽 諛쏆? ?ㅼ젣 而ㅻ??덊떚 猷⑸쭔 紐⑥븯?듬땲?? <span className="font-semibold text-primary">?ㅻ뒛 ?대윴 ?룹감由쇰룄 醫뗭븘??</span>
             </p>
           </div>
         </section>
@@ -106,7 +106,7 @@ export default function OutfitInspirationsPage() {
           </div>
         </section>
 
-        {loading && <p className="mb-4 flex items-center gap-2 text-sm text-stone-400"><Sparkles size={15} />추천 피드를 불러오는 중입니다...</p>}
+        {loading && <p className="mb-4 flex items-center gap-2 text-sm text-stone-400"><Sparkles size={15} />異붿쿇 ?쇰뱶瑜?遺덈윭?ㅻ뒗 以묒엯?덈떎...</p>}
         {errorMessage && <div className="mb-6 rounded-2xl border border-error-container bg-error-container/25 p-4 text-sm text-on-error-container">{errorMessage}</div>}
 
         <section className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">

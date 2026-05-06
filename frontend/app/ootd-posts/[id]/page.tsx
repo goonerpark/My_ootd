@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Bookmark, ChevronLeft, ChevronRight, Heart, MessageCircle, Pencil, Send, Shirt, Trash2 } from 'lucide-react';
@@ -10,7 +11,13 @@ import type { OotdPostDetail } from '@/lib/api/types';
 import { getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
 
 function Avatar({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl?: string | null; name: string; size?: string }) {
-  if (imageUrl) return <img src={imageUrl} alt={name} className={`${size} rounded-full border border-stone-100 object-cover`} />;
+  if (imageUrl) {
+    return (
+      <span className={`${size} relative block overflow-hidden rounded-full border border-stone-100`}>
+        <Image src={imageUrl} alt={name} fill sizes="48px" className="object-cover" />
+      </span>
+    );
+  }
   return <div className={`${size} flex items-center justify-center rounded-full border border-stone-100 bg-primary-container/20 text-sm font-bold text-primary`}>{name.slice(0, 1).toUpperCase()}</div>;
 }
 
@@ -157,10 +164,17 @@ export default function OotdPostDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowBrandTags((value) => !value)}
-                  className="block w-full"
+                  className="relative block aspect-[4/5] w-full"
                   aria-label={showBrandTags ? '브랜드 태그 숨기기' : '브랜드 태그 보기'}
                 >
-                  <img className="aspect-[4/5] h-auto w-full object-cover" src={activeImage.imageUrl} alt="OOTD 상세 이미지" />
+                  <Image
+                    className="object-cover"
+                    src={activeImage.imageUrl}
+                    alt="OOTD 상세 이미지"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 58vw"
+                    priority
+                  />
                 </button>
               ) : (
                 <div className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-on-surface-variant"><Shirt size={42} />이미지가 없습니다</div>

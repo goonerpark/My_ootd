@@ -419,11 +419,11 @@ export function toggleOotdPostLike(token: string, id: number) {
   return request<LikeToggleResult>(`/api/ootd-posts/${id}/likes`, { method: "POST", token });
 }
 
-export function createOotdPostComment(token: string, id: number, content: string) {
+export function createOotdPostComment(token: string, id: number, content: string, parentCommentId?: number | null) {
   return request<OotdComment>(`/api/ootd-posts/${id}/comments`, {
     method: "POST",
     token,
-    body: { content }
+    body: { content, parentCommentId: parentCommentId ?? null }
   });
 }
 

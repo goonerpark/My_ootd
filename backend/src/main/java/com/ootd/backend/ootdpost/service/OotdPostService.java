@@ -169,10 +169,16 @@ public class OotdPostService {
     public OotdCommentResponse createComment(Long userId, Long postId, CreateOotdCommentRequest request) {
         User author = getUser(userId);
         OotdPost post = getActivePost(postId);
+        OotdComment parentComment = null;
+        if (request.parentCommentId() != null) {
+            parentComment = commentRepository.findByIdAndPostId(request.parentCommentId(), postId)
+                    .orElseThrow(() -> new OotdCommentNotFoundException(request.parentCommentId()));
+        }
         OotdComment comment = OotdComment.builder()
                 .post(post)
                 .author(author)
                 .content(request.content().trim())
+                .parentComment(parentComment)
                 .build();
         return toCommentResponse(commentRepository.save(comment));
     }
@@ -391,6 +397,7 @@ public class OotdPostService {
                 author.getNickname(),
                 profile == null ? null : profile.getProfileImageUrl(),
                 post.getComments().stream()
+                        .filter(comment -> !comment.isReply())
                         .sorted(Comparator.comparing(OotdComment::getCreatedAt))
                         .map(this::toCommentResponse)
                         .toList()
@@ -429,11 +436,16 @@ public class OotdPostService {
         UserProfile profile = author.getProfile();
         return new OotdCommentResponse(
                 comment.getId(),
+                comment.getParentComment() == null ? null : comment.getParentComment().getId(),
                 comment.getContent(),
                 comment.getCreatedAt(),
                 author.getId(),
                 author.getNickname(),
-                profile == null ? null : profile.getProfileImageUrl()
+                profile == null ? null : profile.getProfileImageUrl(),
+                comment.getReplies().stream()
+                        .sorted(Comparator.comparing(OotdComment::getCreatedAt))
+                        .map(this::toCommentResponse)
+                        .toList()
         );
     }
 }

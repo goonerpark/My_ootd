@@ -6,8 +6,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Bookmark, ChevronLeft, ChevronRight, Heart, MessageCircle, Pencil, Send, Shirt, Trash2 } from 'lucide-react';
 import { AppShell } from '@/components/layout';
-import { createOotdPostComment, deleteOotdPost, fetchOotdPostDetail, toggleOotdPostLike } from '@/lib/api/client';
-import type { OotdPostDetail } from '@/lib/api/types';
+import { createOotdPostComment, deleteOotdPost, deleteOotdPostComment, fetchOotdPostDetail, toggleOotdPostLike } from '@/lib/api/client';
+import type { OotdComment, OotdPostDetail } from '@/lib/api/types';
 import { getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
 
 function Avatar({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl?: string | null; name: string; size?: string }) {
@@ -21,6 +21,29 @@ function Avatar({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl?: string | nu
   return <div className={`${size} flex items-center justify-center rounded-full border border-stone-100 bg-primary-container/20 text-sm font-bold text-primary`}>{name.slice(0, 1).toUpperCase()}</div>;
 }
 
+function countComments(comments: OotdComment[]): number {
+  return comments.reduce((total, item) => total + 1 + countComments(item.replies ?? []), 0);
+}
+
+function appendComment(comments: OotdComment[], created: OotdComment): OotdComment[] {
+  if (!created.parentCommentId) {
+    return [...comments, { ...created, replies: created.replies ?? [] }];
+  }
+
+  return comments.map((item) => {
+    if (item.commentId === created.parentCommentId) {
+      return { ...item, replies: [...(item.replies ?? []), { ...created, replies: created.replies ?? [] }] };
+    }
+    return { ...item, replies: appendComment(item.replies ?? [], created) };
+  });
+}
+
+function removeComment(comments: OotdComment[], commentId: number): OotdComment[] {
+  return comments
+    .filter((item) => item.commentId !== commentId)
+    .map((item) => ({ ...item, replies: removeComment(item.replies ?? [], commentId) }));
+}
+
 export default function OotdPostDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -29,6 +52,7 @@ export default function OotdPostDetailPage() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [token, setToken] = useState<string | null>(null);
   const [comment, setComment] = useState('');
+  const [replyTo, setReplyTo] = useState<OotdComment | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -100,11 +124,27 @@ export default function OotdPostDetailPage() {
     }
     if (!comment.trim()) return;
     try {
-      const created = await createOotdPostComment(token, post.postId, comment.trim());
-      setPost((prev) => prev ? { ...prev, comments: [...prev.comments, created] } : prev);
+      const created = await createOotdPostComment(token, post.postId, comment.trim(), replyTo?.commentId);
+      setPost((prev) => prev ? { ...prev, comments: appendComment(prev.comments, created) } : prev);
       setComment('');
+      setReplyTo(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '댓글 작성에 실패했습니다.');
+    }
+  };
+
+  const removeCommentById = async (commentId: number) => {
+    if (!token) {
+      setMessage('로그인해야 댓글을 삭제할 수 있습니다.');
+      return;
+    }
+    if (!window.confirm('댓글을 삭제할까요? 대댓글이 있으면 함께 삭제됩니다.')) return;
+    try {
+      await deleteOotdPostComment(token, commentId);
+      setPost((prev) => prev ? { ...prev, comments: removeComment(prev.comments, commentId) } : prev);
+      if (replyTo?.commentId === commentId) setReplyTo(null);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -130,6 +170,37 @@ export default function OotdPostDetailPage() {
     setActiveImageIndex(Math.min(post.images.length - 1, Math.max(0, nextIndex)));
     setShowBrandTags(false);
   };
+
+  const renderComment = (item: OotdComment, depth = 0) => (
+    <div key={item.commentId} className={depth > 0 ? 'ml-10 border-l border-surface-container pl-4' : ''}>
+      <div className="flex gap-3">
+        <Avatar imageUrl={item.authorProfileImageUrl} name={item.authorNickname} size="h-8 w-8" />
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-sm">
+            <span className="font-bold">{item.authorNickname}</span> {item.content}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-[10px] text-stone-400">
+            <span>{new Date(item.createdAt).toLocaleString('ko-KR')}</span>
+            {token && (
+              <button type="button" className="font-bold text-primary" onClick={() => setReplyTo(item)}>
+                답글 달기
+              </button>
+            )}
+            {token && currentUserId === item.authorId && (
+              <button type="button" className="font-bold text-error" onClick={() => removeCommentById(item.commentId)}>
+                삭제
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+      {item.replies?.length > 0 && (
+        <div className="mt-3 space-y-3">
+          {item.replies.map((reply) => renderComment(reply, depth + 1))}
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return <AppShell activePath="/ootd-board" withFooter><div className="mx-auto max-w-[1200px] px-4 py-10 text-stone-400">게시글을 불러오는 중입니다...</div></AppShell>;
@@ -246,7 +317,7 @@ export default function OotdPostDetailPage() {
                   <Heart className={liked ? 'text-error' : 'text-stone-400'} fill={liked ? 'currentColor' : 'none'} />
                   <span className="font-bold">{post.likeCount}</span>
                 </button>
-                <div className="flex items-center gap-2"><MessageCircle className="text-stone-400" /><span className="font-bold">{post.comments.length}</span></div>
+                <div className="flex items-center gap-2"><MessageCircle className="text-stone-400" /><span className="font-bold">{countComments(post.comments)}</span></div>
                 <Bookmark className="ml-auto text-stone-400" />
               </div>
 
@@ -270,22 +341,22 @@ export default function OotdPostDetailPage() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-sm font-bold text-on-surface">댓글 ({post.comments.length})</h2>
+              <h2 className="text-sm font-bold text-on-surface">댓글 ({countComments(post.comments)})</h2>
               <div className="max-h-[300px] space-y-4 overflow-y-auto pr-2 hide-scrollbar">
                 {post.comments.length === 0 && <p className="text-sm text-stone-500">아직 댓글이 없습니다.</p>}
-                {post.comments.map((item) => (
-                  <div key={item.commentId} className="flex gap-3">
-                    <Avatar imageUrl={item.authorProfileImageUrl} name={item.authorNickname} size="h-8 w-8" />
-                    <div>
-                      <p className="text-sm"><span className="font-bold">{item.authorNickname}</span> {item.content}</p>
-                      <p className="text-[10px] text-stone-400">{new Date(item.createdAt).toLocaleString('ko-KR')}</p>
-                    </div>
-                  </div>
-                ))}
+                {post.comments.map((item) => renderComment(item))}
               </div>
-              <form onSubmit={submitComment} className="relative pt-2">
-                <input value={comment} onChange={(e) => setComment(e.target.value)} className="w-full rounded-full border border-stone-200 bg-white px-6 py-3 text-sm outline-none transition focus:border-primary-container" placeholder="댓글을 입력하세요..." />
+              <form onSubmit={submitComment} className="space-y-2 pt-2">
+                {replyTo && (
+                  <div className="flex items-center justify-between rounded-2xl bg-surface-container-low px-4 py-2 text-xs text-on-surface-variant">
+                    <span><b className="text-primary">@{replyTo.authorNickname}</b> 님에게 답글 작성 중</span>
+                    <button type="button" className="font-bold text-primary" onClick={() => setReplyTo(null)}>취소</button>
+                  </div>
+                )}
+                <div className="relative">
+                <input value={comment} onChange={(e) => setComment(e.target.value)} className="w-full rounded-full border border-stone-200 bg-white px-6 py-3 pr-16 text-sm outline-none transition focus:border-primary-container" placeholder={replyTo ? '답글을 입력하세요...' : '댓글을 입력하세요...'} />
                 <button type="submit" className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1 text-sm font-bold text-primary"><Send size={14} />게시</button>
+                </div>
               </form>
               {message && <p className="text-sm text-error">{message}</p>}
             </div>

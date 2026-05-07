@@ -308,11 +308,13 @@ export type OotdPostImage = {
 
 export type OotdComment = {
   commentId: number;
+  parentCommentId: number | null;
   content: string;
   createdAt: string;
   authorId: number;
   authorNickname: string;
   authorProfileImageUrl: string | null;
+  replies: OotdComment[];
 };
 
 export type OotdPostDetail = {

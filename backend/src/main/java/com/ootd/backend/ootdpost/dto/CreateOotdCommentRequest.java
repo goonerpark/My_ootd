@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 public record CreateOotdCommentRequest(
         @NotBlank(message = "content is required")
         @Size(max = 500, message = "content must be 500 characters or less")
-        String content
+        String content,
+        Long parentCommentId
 ) {
 }

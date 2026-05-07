@@ -97,7 +97,7 @@ export default function HomePage() {
 
   const moveRecommendationDate = (direction: -1 | 1) => {
     if (!isLoggedIn) {
-      window.alert('날짜별 AI 추천은 로그인이 필요한 기능입니다.');
+      window.alert('날짜별 추천은 로그인이 필요합니다.');
       setAuthNoticeOpen(true);
       return;
     }
@@ -115,7 +115,7 @@ export default function HomePage() {
     <AppShell activePath="/" withFooter>
       <div className="mx-auto max-w-7xl px-6 py-8">
         <header className="mb-10">
-          <h1 className="font-headline text-4xl font-bold text-primary">홈 대시보드</h1>
+          <h1 className="font-headline text-4xl font-bold text-primary">MY_OOTD</h1>
           <p className="mt-2 text-on-surface-variant">
             {nickname ? `${nickname}님, 오늘은 무엇을 입을까요?` : '오늘은 무엇을 입을까요?'} 날씨와 취향을 반영한 추천을 준비했습니다.
           </p>

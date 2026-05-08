@@ -21,10 +21,12 @@ public class JwtTokenProvider {
     private long accessTokenExpirationMs;
 
     private SecretKey secretKey;
+    private Date serverStartedAt;
 
     @PostConstruct
     public void init() {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.serverStartedAt = new Date(System.currentTimeMillis() - 1000);
     }
 
     public String generateAccessToken(Long userId, String email, String role) {
@@ -51,8 +53,9 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            parseClaims(token);
-            return true;
+            Claims claims = parseClaims(token);
+            Date issuedAt = claims.getIssuedAt();
+            return issuedAt != null && !issuedAt.before(serverStartedAt);
         } catch (Exception e) {
             return false;
         }

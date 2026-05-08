@@ -28,6 +28,7 @@ import type {
   UserProfile,
   WeeklyRecommendationItem
 } from "./types";
+import { clearAccessTokenFromStorage } from "@/lib/auth/token";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
@@ -48,6 +49,12 @@ type RequestOptions = {
   token?: string;
   body?: unknown;
 };
+
+function clearStoredAuthOnUnauthorized(response: Response) {
+  if (response.status === 401 && typeof window !== "undefined") {
+    clearAccessTokenFromStorage();
+  }
+}
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const method = options.method ?? "GET";
@@ -73,6 +80,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!response.ok || !payload?.success || !payload.data) {
+    clearStoredAuthOnUnauthorized(response);
     const message = payload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = payload?.error?.code;
     throw new ApiRequestError(message, response.status, code);
@@ -105,6 +113,7 @@ async function requestVoid(path: string, options: RequestOptions = {}): Promise<
   }
 
   if (!response.ok || !payload?.success) {
+    clearStoredAuthOnUnauthorized(response);
     const message = payload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = payload?.error?.code;
     throw new ApiRequestError(message, response.status, code);
@@ -209,6 +218,7 @@ export async function createOotdReview(token: string, payload: CreateOotdReviewP
   }
 
   if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    clearStoredAuthOnUnauthorized(response);
     const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = apiPayload?.error?.code;
     throw new ApiRequestError(message, response.status, code);
@@ -285,6 +295,7 @@ async function requestClosetWithFormData(
   }
 
   if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    clearStoredAuthOnUnauthorized(response);
     const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = apiPayload?.error?.code;
     throw new ApiRequestError(message, response.status, code);
@@ -368,6 +379,7 @@ export async function createOotdPost(token: string, payload: CreateOotdPostPaylo
   }
 
   if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    clearStoredAuthOnUnauthorized(response);
     const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = apiPayload?.error?.code;
     throw new ApiRequestError(message, response.status, code);
@@ -403,6 +415,7 @@ export async function updateOotdPost(token: string, id: number, payload: UpdateO
   }
 
   if (!response.ok || !apiPayload?.success || !apiPayload.data) {
+    clearStoredAuthOnUnauthorized(response);
     const message = apiPayload?.error?.message ?? "API 요청에 실패했습니다.";
     const code = apiPayload?.error?.code;
     throw new ApiRequestError(message, response.status, code);

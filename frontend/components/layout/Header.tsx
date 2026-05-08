@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Bell, Heart, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { clearAccessTokenFromStorage, getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
+import { fetchMyProfile } from '@/lib/api/client';
 import { AppLogo } from '@/components/ui';
 
 export function Header() {
@@ -11,8 +12,17 @@ export function Header() {
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    setHasToken(Boolean(getAccessTokenFromStorage()));
+    const token = getAccessTokenFromStorage();
+    setHasToken(Boolean(token));
     setNickname(getAuthUserProfileFromStorage()?.nickname ?? null);
+
+    if (!token) return;
+
+    fetchMyProfile(token).catch(() => {
+      clearAccessTokenFromStorage();
+      setHasToken(false);
+      setNickname(null);
+    });
   }, []);
 
   const logout = () => {

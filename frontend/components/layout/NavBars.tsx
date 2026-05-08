@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Bell, Camera, ClipboardList, LayoutDashboard, Shirt, UserRound } from 'lucide-react';
 import { clearAccessTokenFromStorage, getAccessTokenFromStorage, getAuthUserProfileFromStorage } from '@/lib/auth/token';
+import { fetchMyProfile } from '@/lib/api/client';
 import { AppLogo } from '@/components/ui';
 
 const navItems = [
@@ -26,8 +27,17 @@ function useClientAuthProfile() {
   const [profile, setProfile] = useState<StoredProfile>(null);
 
   useEffect(() => {
-    setHasToken(Boolean(getAccessTokenFromStorage()));
+    const token = getAccessTokenFromStorage();
+    setHasToken(Boolean(token));
     setProfile(getAuthUserProfileFromStorage());
+
+    if (!token) return;
+
+    fetchMyProfile(token).catch(() => {
+      clearAccessTokenFromStorage();
+      setHasToken(false);
+      setProfile(null);
+    });
   }, []);
 
   const logout = () => {
